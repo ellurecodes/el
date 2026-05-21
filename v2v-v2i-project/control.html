@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>V2X Control Center v6.5 — Advanced GPS & Satellite Maps</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<style>
+/* INSTANT AUTH GUARD — body hidden by default, made visible by inline script only if admin */
+body{visibility:var(--body-vis,hidden)}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#060612;--card:#0d0d20;--blue:#4466ff;--green:#00dd66;--red:#ff2233;--yellow:#ffaa00;--purple:#aa44ff;--text:#c8c8e0;--dim:#445566;--border:rgba(80,80,200,.1)}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* TOP BAR */
+.topbar{display:flex;align-items:center;gap:10px;padding:8px 14px;background:linear-gradient(135deg,#0a0a2e,#12123a);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.topbar h1{font-family:'Orbitron';font-size:.88rem;color:var(--blue);letter-spacing:2px;flex:1;min-width:160px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.2}}
+.live-txt{font-size:.65rem;color:var(--green);font-family:'Share Tech Mono';display:flex;align-items:center;gap:5px}
+.tbtn{padding:5px 11px;border-radius:8px;border:0;cursor:pointer;font-size:.68rem;font-weight:700;font-family:inherit;transition:.2s}
+.tbtn.info{background:rgba(68,102,255,.15);color:#8af;border:1px solid rgba(68,102,255,.3)}
+.tbtn.info:hover{background:rgba(68,102,255,.3)}
+.tbtn.warn{background:rgba(255,34,51,.1);color:#f88;border:1px solid rgba(255,34,51,.25)}
+.tbtn.track{background:rgba(0,220,100,.1);color:#4f8;border:1px solid rgba(0,220,100,.25)}
+.tbtn.track.on{background:rgba(0,220,100,.22);color:#0f9;border-color:rgba(0,220,100,.5)}
+#uc{font-size:.65rem;color:var(--dim);font-family:'Share Tech Mono'}
+
+/* MAIN */
+.main{display:flex;flex:1;overflow:hidden}
+#map{flex:1;min-height:200px;position:relative;z-index:0}
+.side{width:290px;flex-shrink:0;background:#080818;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+@media(max-width:700px){.main{flex-direction:column}.side{width:100%;height:240px;border-left:none;border-top:1px solid var(--border)}}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:8px 4px;text-align:center;background:0;border:0;border-bottom:2px solid transparent;color:#334;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s}
+.tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+.panel{display:none;flex:1;overflow-y:auto;padding:10px}
+.panel.show{display:block}
+.panel::-webkit-scrollbar{width:4px}.panel::-webkit-scrollbar-thumb{background:rgba(100,100,255,.2);border-radius:3px}
+
+/* UNIT CARDS */
+.uc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:7px;transition:.3s;position:relative;overflow:hidden}
+.uc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.uc.ev::before{background:var(--red)}.uc.sig::before{background:var(--yellow)}
+.uc.v1::before{background:var(--blue)}.uc.v2::before{background:var(--purple)}
+.uc.alive{box-shadow:0 0 10px rgba(0,220,100,.07);border-color:rgba(0,220,100,.25)}
+.uc h4{font-size:.75rem;margin-bottom:5px;color:#aab;display:flex;align-items:center;justify-content:space-between}
+.badge{font-size:.58rem;padding:2px 7px;border-radius:10px;font-weight:700}
+.badge.red{background:rgba(255,34,51,.15);color:#f66}
+.badge.green{background:rgba(0,220,100,.15);color:#4f8}
+.badge.yellow{background:rgba(255,170,0,.15);color:#fa4}
+.badge.blue{background:rgba(68,102,255,.15);color:#8af}
+.badge.off{background:rgba(100,100,150,.1);color:#334}
+.ui{font-size:.68rem;color:#446;line-height:1.7}
+.ui .uv{color:#aab;font-weight:700}
+
+/* LOG */
+.litem{display:flex;gap:7px;padding:4px 7px;margin-bottom:2px;border-left:3px solid;border-radius:3px;font-size:.62rem}
+.litem .lt{color:#334;font-family:'Share Tech Mono';white-space:nowrap;font-size:.55rem}
+.litem.i{border-color:var(--blue);color:#8af;background:rgba(68,102,255,.03)}
+.litem.a{border-color:var(--red);color:#f88;background:rgba(255,34,51,.03)}
+.litem.v{border-color:var(--green);color:#8fa;background:rgba(0,220,100,.03)}
+.litem.w{border-color:var(--yellow);color:#fc6;background:rgba(255,170,0,.03)}
+
+/* ANALYTICS */
+.arow{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:.72rem}
+.arow .al{color:#446}.arow .av{font-weight:700}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat{background:var(--card);border-radius:10px;padding:10px;border:1px solid var(--border);text-align:center}
+.stat .si{font-size:1.5rem;margin-bottom:3px}
+.stat .sv{font-family:'Orbitron';font-size:1.1rem;font-weight:900}
+.stat .sl{font-size:.52rem;color:var(--dim);letter-spacing:1px;margin-top:2px}
+.ana-hdr{font-size:.6rem;color:var(--blue);font-family:'Share Tech Mono';letter-spacing:2px;margin:8px 0 6px}
+
+/* MAP OVERLAY CONTROLS */
+.mc{position:absolute;top:10px;left:10px;z-index:1000;display:flex;flex-direction:column;gap:5px}
+.mc-btn{padding:6px 11px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:rgba(8,8,30,.88);color:#bbb;font-size:.68rem;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;backdrop-filter:blur(8px);transition:.2s;white-space:nowrap}
+.mc-btn:hover{background:rgba(68,102,255,.25);color:#fff;border-color:rgba(68,102,255,.4)}
+.mc-btn.on{background:rgba(255,170,0,.2);color:#fe8;border-color:rgba(255,170,0,.4)}
+
+/* MAP LEGEND */
+.mleg{position:absolute;bottom:22px;left:10px;z-index:1000;background:rgba(6,6,18,.92);border:1px solid var(--border);border-radius:10px;padding:9px 11px;font-size:.62rem;backdrop-filter:blur(8px)}
+.ml{display:flex;align-items:center;gap:6px;margin-bottom:3px;color:#778}
+.ml:last-child{margin-bottom:0}
+.mld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* EV status overlay */
+.evstat{position:absolute;bottom:22px;right:10px;z-index:1000;background:rgba(6,6,18,.92);border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:.6rem;color:#446;backdrop-filter:blur(8px);text-align:right;min-width:150px}
+.evstat-val{font-family:'Share Tech Mono';color:#8af;font-size:.68rem;margin-bottom:2px}
+
+.foot{padding:6px 14px;background:#050510;border-top:1px solid var(--border);font-size:.57rem;color:#223;text-align:center;flex-shrink:0}
+
+/* No EV overlay on map */
+.noev{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:500;background:rgba(8,8,24,.9);border:1px solid var(--border);border-radius:16px;padding:22px 28px;text-align:center;backdrop-filter:blur(10px);pointer-events:none}
+.noev h3{font-family:'Orbitron';font-size:.82rem;color:var(--blue);margin-bottom:6px}
+.noev p{font-size:.68rem;color:#446}
+
+/* ADMIN PANEL */
+.adm-hdr{font-size:.58rem;color:var(--red);font-family:'Share Tech Mono';letter-spacing:2px;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid rgba(255,34,51,.12)}
+.adm-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:.68rem}
+.adm-row .al{color:#446}.adm-row .av{font-weight:700;color:#aab;font-family:'Share Tech Mono'}
+.range-wrap{margin-bottom:10px}
+.range-label{display:flex;justify-content:space-between;font-size:.6rem;color:#446;margin-bottom:4px}
+.range-val{color:#aab;font-weight:700;font-family:'Share Tech Mono'}
+input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;height:4px}
+.adm-btn{padding:6px 10px;border-radius:7px;border:1px solid;font-size:.62rem;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;transition:.2s;width:100%;margin-bottom:5px;text-align:center}
+.adm-btn.red{border-color:rgba(255,34,51,.3);color:#f66;background:rgba(255,34,51,.07)}
+.adm-btn.red:hover{background:rgba(255,34,51,.15);border-color:rgba(255,34,51,.6)}
+.adm-btn.green{border-color:rgba(0,220,100,.3);color:#4f8;background:rgba(0,220,100,.07)}
+.adm-btn.green:hover{background:rgba(0,220,100,.15)}
+.adm-btn.blue{border-color:rgba(68,102,255,.3);color:#8af;background:rgba(68,102,255,.07)}
+.adm-btn.blue:hover{background:rgba(68,102,255,.15)}
+.adm-btn.yellow{border-color:rgba(255,170,0,.3);color:#fc6;background:rgba(255,170,0,.07)}
+.adm-btn.yellow:hover{background:rgba(255,170,0,.15)}
+.adm-btn.danger{border-color:rgba(255,34,51,.5);color:#ff4444;background:rgba(255,0,0,.1);margin-bottom:0}
+.adm-btn.danger:hover{background:rgba(255,0,0,.2)}
+.adm-inp{width:100%;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:#fff;font-family:'Rajdhani',sans-serif;font-size:.72rem;margin-bottom:6px;outline:0}
+.adm-inp:focus{border-color:var(--blue)}
+.sig-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:8px}
+.user-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03);margin-bottom:6px;font-size:.62rem;border:1px solid var(--border);transition:.2s}
+.user-item:hover{background:rgba(255,255,255,.06)}
+.user-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.user-avatar-sm{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:.7rem;flex-shrink:0;overflow:hidden}
+.user-avatar-sm img{width:100%;height:100%;object-fit:cover}
+.user-info{flex:1;min-width:0}
+.user-info .un{color:#aab;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.65rem}
+.user-info .ue{color:#334;font-size:.54rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge-admin{font-size:.5rem;padding:2px 7px;border-radius:6px;background:rgba(255,34,51,.15);color:#f66;border:1px solid rgba(255,34,51,.25);font-weight:700;white-space:nowrap}
+.badge-super{font-size:.5rem;padding:2px 7px;border-radius:6px;background:rgba(255,170,0,.15);color:#fc6;border:1px solid rgba(255,170,0,.3);font-weight:700;white-space:nowrap}
+.badge-user{font-size:.5rem;padding:2px 7px;border-radius:6px;background:rgba(68,102,255,.1);color:#8af;border:1px solid rgba(68,102,255,.2);font-weight:700;white-space:nowrap}
+.user-actions{display:flex;gap:4px;flex-shrink:0}
+.ua-btn{padding:3px 8px;border-radius:6px;border:1px solid;font-size:.52rem;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;transition:.2s}
+.ua-promote{border-color:rgba(0,220,100,.3);color:#4f8;background:rgba(0,220,100,.07)}.ua-promote:hover{background:rgba(0,220,100,.2)}
+.ua-demote{border-color:rgba(255,34,51,.3);color:#f66;background:rgba(255,34,51,.07)}.ua-demote:hover{background:rgba(255,34,51,.2)}
+/* UA BUTTONS */
+.ua-btn.ua-ban{border-color:rgba(255,34,51,.35);color:#f55;background:rgba(255,0,0,.08)}.ua-btn.ua-ban:hover{background:rgba(255,0,0,.2)}
+.ua-btn.ua-unban{border-color:rgba(0,220,100,.35);color:#4f8;background:rgba(0,220,100,.08)}.ua-btn.ua-unban:hover{background:rgba(0,220,100,.2)}
+.ua-btn.ua-remove{border-color:rgba(255,170,0,.35);color:#fc6;background:rgba(255,170,0,.07)}.ua-btn.ua-remove:hover{background:rgba(255,170,0,.2)}
+.ban-reason-wrap{margin-bottom:8px;display:none}
+.ban-reason-inp{width:100%;padding:5px 8px;border-radius:7px;background:rgba(255,0,0,.05);border:1px solid rgba(255,34,51,.2);color:#f88;font-size:.62rem;font-family:'Rajdhani',sans-serif;outline:0}
+.users-filter{width:100%;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:#aab;font-family:'Rajdhani',sans-serif;font-size:.68rem;margin-bottom:8px;outline:0}
+.users-filter:focus{border-color:var(--blue)}
+
+/* ─── GPS ACCURACY DASHBOARD STYLES ─── */
+.gps-dashboard{background:#0d0d20;border:1px solid rgba(100,100,200,.1);border-radius:12px;padding:14px;margin:10px 0;color:#c8c8e0;font-family:'Rajdhani',sans-serif}
+.gps-header{font-size:.75rem;font-weight:700;color:#4466ff;font-family:'Orbitron',sans-serif;letter-spacing:1px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(68,102,255,.2)}
+.gps-units{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:12px}
+.gps-unit-card{background:rgba(8,8,24,.6);border:1px solid rgba(100,100,200,.15);border-radius:10px;padding:10px;display:none}
+.gps-unit-card.active{display:block}
+.gpu-title{font-size:.68rem;font-weight:700;margin-bottom:8px;color:#aab}
+.gpu-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.gpu-stat{background:rgba(68,102,255,.05);border:1px solid rgba(68,102,255,.15);border-radius:6px;padding:6px;text-align:center}
+.gpu-label{display:block;font-size:.55rem;color:#667;margin-bottom:3px;font-family:'Share Tech Mono',monospace}
+.gpu-value{display:block;font-size:.75rem;font-weight:700;color:#00dd66;font-family:'Share Tech Mono',monospace}
+.gpu-trend{height:24px;margin-bottom:6px;background:rgba(68,102,255,.05);border-radius:4px;overflow:hidden}
+.gpu-trend svg{width:100%;height:100%}
+.gpu-mini-stats{font-size:.56rem;color:#667}
+.gpu-mini{margin-bottom:2px;font-family:'Share Tech Mono',monospace}
+.gpu-mini span{color:#ff9}
+.gps-chart-container{background:rgba(8,8,24,.4);border:1px solid rgba(100,100,200,.15);border-radius:10px;padding:8px;margin-bottom:10px}
+.gps-chart-container canvas{width:100%;height:200px;display:block}
+.gps-report{background:rgba(0,220,100,.05);border:1px solid rgba(0,220,100,.2);border-radius:8px;padding:8px;font-size:.62rem}
+.gps-report-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(0,220,100,.1)}
+.gps-report-row:last-child{border-bottom:none}
+.gps-report-label{color:#667;font-family:'Share Tech Mono',monospace}
+.gps-report-value{color:#0f9;font-weight:700;font-family:'Share Tech Mono',monospace}
+.gps-route-planner{background:rgba(0,220,100,.05);border:1px solid rgba(0,220,100,.2);border-radius:10px;padding:12px;margin-top:12px}
+.gps-route-planner .gps-header{margin-bottom:8px}
+.route-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-bottom:10px}
+.route-btn{padding:6px 8px;border-radius:6px;border:1px solid rgba(0,220,100,.3);background:rgba(0,220,100,.1);color:#4f8;font-size:.65rem;font-weight:700;cursor:pointer;font-family:'Rajdhani',sans-serif;transition:.2s}
+.route-btn:hover{background:rgba(0,220,100,.25)}
+.route-btn.warn{background:rgba(255,34,51,.1);border-color:rgba(255,34,51,.3);color:#f88}
+.route-btn.warn:hover{background:rgba(255,34,51,.25)}
+.route-info{background:rgba(8,8,24,.4);border-radius:8px;padding:8px}
+.route-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(0,220,100,.1)}
+.route-row:last-child{border-bottom:none}
+.route-label{color:#667;font-family:'Share Tech Mono',monospace;font-size:.62rem}
+.route-value{color:#0f9;font-weight:700;font-family:'Share Tech Mono',monospace;font-size:.62rem}
+</style>
+<script>
+// INSTANT AUTH GUARD — runs before body renders, prevents auth flash
+// Uses sessionStorage (synchronous, no Firebase needed)
+(function() {
+  var user   = sessionStorage.getItem('v2x_user');
+  var isAdmin= sessionStorage.getItem('v2x_is_admin') === 'true';
+  if (!user || !isAdmin) {
+    // Not an admin — redirect immediately before page renders
+    window.location.replace('login.html?reason=auth');
+  } else {
+    // Is admin in session — show body immediately, Firebase will verify async
+    document.documentElement.style.setProperty('--body-vis', 'visible');
+  }
+})();
+</script>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🎛️ V2X CONTROL CENTER v6</h1>
+  <div class="live-txt"><div class="live-dot"></div>LIVE</div>
+  <span id="uc">0/4 online</span>
+  <span style="font-size:.6rem;color:var(--red);font-family:'Share Tech Mono';padding:3px 8px;border-radius:6px;background:rgba(255,34,51,.1);border:1px solid rgba(255,34,51,.2)" id="adminBadge">🔐 ADMIN</span>
+  <button class="tbtn track" id="trackBtn" onclick="toggleTrack()">📍 Track EV</button>
+  <button class="tbtn info" onclick="resetMap()">🗺️ Fit All</button>
+  <button class="tbtn warn" onclick="clearDB()">🗑️ Clear</button>
+  <button class="tbtn info" onclick="logoutSession()" style="border-color:rgba(255,34,51,.3);color:#f66">⏏ Logout</button>
+</div>
+
+<div class="main">
+  <div id="map">
+    <div class="mc">
+      <div class="mc-btn on" id="mcv2v" onclick="toggleV2V()">🟡 V2V 50m</div>
+      <div class="mc-btn on" id="mcv2i" onclick="toggleV2I()">🔵 V2I 100m</div>
+      <div class="mc-btn on" id="mcrt" onclick="toggleRoute()">🗺️ Route</div>
+    </div>
+    <div class="mleg">
+      <div class="ml"><div class="mld" style="background:#f23;box-shadow:0 0 5px #f23"></div>Emergency Vehicle</div>
+      <div class="ml"><div class="mld" style="background:#fa0;box-shadow:0 0 5px #fa0"></div>Traffic Signal</div>
+      <div class="ml"><div class="mld" style="background:#4466ff;box-shadow:0 0 5px #4466ff"></div>Vehicle 1</div>
+      <div class="ml"><div class="mld" style="background:#aa44ff;box-shadow:0 0 5px #aa44ff"></div>Vehicle 2</div>
+    </div>
+    <div class="evstat">
+      <div class="evstat-val" id="evpos">EV: Standby</div>
+      <div id="evspd">—</div>
+      <div id="evhdg">—</div>
+    </div>
+    <div class="noev" id="noev">
+      <h3>📡 Waiting for EV</h3>
+      <p>Open emergency.html on Mobile 1<br>and activate emergency mode</p>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="tabs">
+      <button class="tab on" onclick="switchTab('units',this)">📡 Units</button>
+      <button class="tab" onclick="switchTab('log',this)">📜 Log</button>
+      <button class="tab" onclick="switchTab('ana',this)">📊 Stats</button>
+      <button class="tab" onclick="switchTab('users',this)" style="color:var(--yellow)">👥 Users</button>
+      <button class="tab" onclick="switchTab('adm',this)" style="color:var(--red)">⚙️ Admin</button>
+      <button class="tab" onclick="switchTab('gps',this)" style="color:var(--green)">📡 GPS</button>
+    </div>
+
+    <!-- UNITS PANEL -->
+    <div class="panel show" id="p-units">
+      <div class="uc ev" id="uc_ev">
+        <h4>🚨 Emergency Vehicle<span class="badge off" id="ev_badge">Offline</span></h4>
+        <div class="ui" id="ev_info">Not connected</div>
+      </div>
+      <div class="uc sig" id="uc_sig">
+        <h4>🚦 Traffic Signal<span class="badge yellow" id="sig_badge">Normal</span></h4>
+        <div class="ui" id="sig_info">Monitoring</div>
+      </div>
+      <div class="uc v1" id="uc_v1">
+        <h4>🚗 Vehicle 1<span class="badge off" id="v1_badge">Offline</span></h4>
+        <div class="ui" id="v1_info">Not connected</div>
+      </div>
+      <div class="uc v2" id="uc_v2">
+        <h4>🚙 Vehicle 2<span class="badge off" id="v2_badge">Offline</span></h4>
+        <div class="ui" id="v2_info">Not connected</div>
+      </div>
+    </div>
+
+    <!-- LOG PANEL -->
+    <div class="panel" id="p-log">
+      <div id="logbox">
+        <div class="litem i"><span class="lt">--:--:--</span><span>Control center online</span></div>
+      </div>
+    </div>
+
+    <!-- ANALYTICS PANEL -->
+    <div class="panel" id="p-ana">
+      <div class="ana-hdr">LIVE METRICS</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="si">🚦</div><div class="sv" id="sv2i" style="color:#0d6">0</div><div class="sl">V2I Events</div></div>
+        <div class="stat"><div class="si">🚗</div><div class="sv" id="sv2v" style="color:#fa0">0</div><div class="sl">V2V Yields</div></div>
+        <div class="stat"><div class="si">📡</div><div class="sv" id="sbc" style="color:#8af">0</div><div class="sl">EV Broadcasts</div></div>
+        <div class="stat"><div class="si">📍</div><div class="sv" id="srt" style="color:#c8f">0 m</div><div class="sl">Route Length</div></div>
+      </div>
+      <div class="ana-hdr">DISTANCES (REAL)</div>
+      <div class="arow"><span class="al">EV → Signal</span><span class="av" id="aevSig">—</span></div>
+      <div class="arow"><span class="al">EV → Vehicle 1</span><span class="av" id="aevV1">—</span></div>
+      <div class="arow"><span class="al">EV → Vehicle 2</span><span class="av" id="aevV2">—</span></div>
+      <div class="arow"><span class="al">EV Speed</span><span class="av" id="aevSpd">—</span></div>
+      <div class="arow"><span class="al">EV Accuracy</span><span class="av" id="aevAcc">—</span></div>
+      <div class="arow"><span class="al">Units Online</span><span class="av" id="aUnits">0/4</span></div>
+      <div class="arow"><span class="al">V2V Range</span><span class="av" id="aV2V" style="color:var(--yellow)">25m</span></div>
+      <div class="arow"><span class="al">V2I Range</span><span class="av" id="aV2I" style="color:var(--blue)">50m</span></div>
+    </div>
+
+    <!-- USERS PANEL -->
+    <div class="panel" id="p-users">
+      <div class="adm-hdr" style="color:var(--yellow)">👥 USER MANAGEMENT</div>
+      <input class="users-filter" id="usersFilter" placeholder="Search by name or email..." oninput="filterUsers(this.value)">
+      <div style="font-size:.52rem;color:#445;margin-bottom:8px;font-family:'Share Tech Mono'">Manage all signed-in users · Promote · Demote · Ban · Remove</div>
+      <div id="usersBox"><div style="font-size:.62rem;color:#334">Loading users...</div></div>
+      <div class="adm-hdr" style="color:var(--red);margin-top:14px">🔐 CURRENT ADMINS</div>
+      <div id="adminsBox"><div style="font-size:.62rem;color:#334">Loading admins...</div></div>
+      <div class="adm-hdr" style="color:var(--red);margin-top:14px">⛔ BANNED USERS</div>
+      <div id="bannedBox"><div style="font-size:.62rem;color:#334">No banned users</div></div>
+    </div>
+
+    <!-- ADMIN PANEL -->
+    <div class="panel" id="p-adm">
+
+      <div class="adm-hdr">🛣️ INTERSECTION (DRAG MAP MARKER)</div>
+      <div class="range-wrap">
+        <div class="range-label"><span>Rotation</span><span class="range-val" id="intRotLabel">0°</span></div>
+        <input type="range" id="intRot" min="0" max="360" step="1" value="0" oninput="updateIntRotation(this.value)">
+      </div>
+      <div class="range-wrap">
+        <div class="range-label"><span>Size</span><span class="range-val" id="intSizeLabel">120m</span></div>
+        <input type="range" id="intSize" min="50" max="400" step="10" value="120" oninput="updateIntSize(this.value)">
+      </div>
+
+      <div class="adm-hdr">📏 DETECTION RANGES</div>
+      <div class="range-wrap">
+        <div class="range-label"><span>V2V Danger Zone</span><span class="range-val" id="rv2vLabel">25 m</span></div>
+        <input type="range" id="rv2v" min="5" max="100" step="5" value="25" oninput="updateRangeLabel('v2v',this.value)">
+      </div>
+      <div class="range-wrap">
+        <div class="range-label"><span>V2I Signal Zone</span><span class="range-val" id="rv2iLabel">50 m</span></div>
+        <input type="range" id="rv2i" min="10" max="200" step="10" value="50" oninput="updateRangeLabel('v2i',this.value)">
+      </div>
+      <button class="adm-btn blue" onclick="pushRanges()">📡 Apply Ranges to All Nodes</button>
+
+      <div class="adm-hdr">🚦 SIGNAL OVERRIDE</div>
+      <div class="sig-btns">
+        <button class="adm-btn green" onclick="forceSignal('green')">🟢 GREEN</button>
+        <button class="adm-btn red" onclick="forceSignal('red')">🔴 RED</button>
+        <button class="adm-btn yellow" onclick="forceSignal('normal')">⚡ Normal</button>
+      </div>
+
+      <div class="adm-hdr">📢 SYSTEM BROADCAST</div>
+      <input class="adm-inp" id="broadcastMsg" placeholder="Message to all nodes..." maxlength="120">
+      <button class="adm-btn blue" onclick="sendBroadcast()">📢 Send to All Units</button>
+
+      <div class="adm-hdr">👥 ACTIVE SESSIONS</div>
+      <div id="sessionsBox"><div style="font-size:.62rem;color:#334">No sessions logged yet</div></div>
+
+      <div class="adm-hdr">⚠️ DANGER ZONE</div>
+      <button class="adm-btn danger" onclick="clearDB()">🗑️ Clear All Firebase Data</button>
+      <button class="adm-btn danger" style="margin-top:5px" onclick="resetAllUnits()">🔄 Reset All Unit States</button>
+
+      <div style="margin-top:12px;font-size:.55rem;color:#223;font-family:'Share Tech Mono';text-align:center">Logged in as ADMIN · <a href="login.html" onclick="logoutSession();return false;" style="color:#334">Sign Out</a></div>
+    </div>
+
+    <!-- GPS DASHBOARD PANEL -->
+    <div class="panel" id="p-gps">
+      <div class="gps-dashboard">
+        <div class="gps-header">📡 GPS Accuracy Monitor</div>
+        
+        <div class="gps-units">
+          <!-- EV Stats -->
+          <div class="gps-unit-card" id="gps-card-ev">
+            <div class="gpu-title">🚨 Emergency Vehicle</div>
+            <div class="gpu-stats">
+              <div class="gpu-stat">
+                <span class="gpu-label">Accuracy</span>
+                <span class="gpu-value" id="gpu-ev-accuracy">—</span>
+              </div>
+              <div class="gpu-stat">
+                <span class="gpu-label">Speed</span>
+                <span class="gpu-value" id="gpu-ev-speed">—</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Signal Stats -->
+          <div class="gps-unit-card" id="gps-card-sig">
+            <div class="gpu-title">🚦 Signal</div>
+            <div class="gpu-stats">
+              <div class="gpu-stat">
+                <span class="gpu-label">Accuracy</span>
+                <span class="gpu-value" id="gpu-sig-accuracy">—</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- V1 Stats -->
+          <div class="gps-unit-card" id="gps-card-v1">
+            <div class="gpu-title">🚗 Vehicle 1</div>
+            <div class="gpu-stats">
+              <div class="gpu-stat">
+                <span class="gpu-label">Accuracy</span>
+                <span class="gpu-value" id="gpu-v1-accuracy">—</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- V2 Stats -->
+          <div class="gps-unit-card" id="gps-card-v2">
+            <div class="gpu-title">🚙 Vehicle 2</div>
+            <div class="gpu-stats">
+              <div class="gpu-stat">
+                <span class="gpu-label">Accuracy</span>
+                <span class="gpu-value" id="gpu-v2-accuracy">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="gps-report">
+          <div class="gps-report-row">
+            <span class="gps-report-label">System Status:</span>
+            <span class="gps-report-value" id="gps-status">Ready</span>
+          </div>
+          <div class="gps-report-row">
+            <span class="gps-report-label">Total Readings:</span>
+            <span class="gps-report-value" id="gps-readings">0</span>
+          </div>
+        </div>
+        
+        <!-- EV Route Planning -->
+        <div class="gps-route-planner">
+          <div class="gps-header">🚨 EV Route Planning</div>
+          <div class="route-controls">
+            <button class="route-btn" id="set-start" onclick="setRouteStart()">📍 Set Start</button>
+            <button class="route-btn" id="set-dest" onclick="setRouteDestination()">🎯 Set Destination</button>
+            <button class="route-btn" id="calc-route" onclick="calculateEVRoute()">🛣️ Calculate Route</button>
+            <button class="route-btn warn" id="clear-route" onclick="clearEVRoute()">🗑️ Clear Route</button>
+          </div>
+          <div class="route-info">
+            <div class="route-row">
+              <span class="route-label">Start:</span>
+              <span class="route-value" id="route-start">Not set</span>
+            </div>
+            <div class="route-row">
+              <span class="route-label">Destination:</span>
+              <span class="route-value" id="route-dest">Not set</span>
+            </div>
+            <div class="route-row">
+              <span class="route-label">Distance:</span>
+              <span class="route-value" id="route-distance">—</span>
+            </div>
+            <div class="route-row">
+              <span class="route-label">ETA:</span>
+              <span class="route-value" id="route-eta">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="foot">🎓 V2X Emergency Clearance System v6.0 · Firebase Auth · Leaflet/OSM · Real GPS · Vincenty GPS · Silk Board Junction</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="intersection-widget.js"></script>
+
+<!-- Advanced GPS Tracking & Map Enhancements v2.0 -->
+<script src="gps-tracking.js"></script>
+<script src="map-config.js"></script>
+<script src="gps-dashboard.js"></script>
+<script src="gps-map-integration.js"></script>
+<script>
+// ── MAP INIT ──────────────────────────────────────────────────
+const map = L.map('map',{zoomControl:true}).setView([12.9176, 77.6201], 18);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'© <a href="https://osm.org">OSM</a> | <a href="https://carto.com">CartoDB</a>',
+  subdomains:'abcd',maxZoom:20
+}).addTo(map);
+
+// Add intersection widget
+let intersectionWidget = new window.IntersectionWidget(map, {
+  lat: 12.9176,
+  lng: 77.6201,
+  sizeMeters: 120,
+  rotation: 0,
+  onUpdate: (state) => db.ref('v4/config/intersection').set(state)
+});
+
+// ── STATE ─────────────────────────────────────────────────────
+let evM=null,sigM=null,v1M=null,v2M=null;
+let v2vCirc=null,v2iCirc=null,routeLine=null;
+let showV2V=true,showV2I=true,showRoute=true,trackEV=true;
+let cntV2I=0,cntV2V=0,cntBC=0,routeLen=0;
+let evLat=null,evLng=null,sigLat=null,sigLng=null,v1Lat=null,v1Lng=null,v2Lat=null,v2Lng=null;
+let unitsOnline=new Set();
+let allMarkers=[];
+
+// ── SVG ICONS ─────────────────────────────────────────────────
+function evIcon(type) {
+  const cols={police:'#2266ff',fire:'#ff6600',ambulance:'#ff2233'};
+  const c=cols[type]||'#ff2233';
+  return L.divIcon({className:'',html:`
+    <div style="position:relative;filter:drop-shadow(0 0 10px ${c})">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 72" width="40" height="65">
+        <rect x="15" y="1" width="14" height="7" rx="3" fill="${c}" opacity="1"><animate attributeName="opacity" values="1;0.1;1" dur=".5s" repeatCount="indefinite"/></rect>
+        <ellipse cx="22" cy="15" rx="13" ry="7" fill="${c}"/>
+        <circle cx="22" cy="20" r="9" fill="#e8b690"/>
+        <circle cx="19" cy="19" r="1.5" fill="#333"/><circle cx="25" cy="19" r="1.5" fill="#333"/>
+        <rect x="13" y="29" width="18" height="22" rx="4" fill="${c}"/>
+        <rect x="4" y="29" width="10" height="8" rx="3" fill="${c}cc"/>
+        <rect x="30" y="29" width="10" height="8" rx="3" fill="${c}cc"/>
+        <rect x="16" y="32" width="12" height="8" rx="2" fill="white" opacity=".9"/>
+        <text x="22" y="39" text-anchor="middle" font-size="5" font-weight="bold" fill="${c}">EMG</text>
+        <rect x="14" y="50" width="8" height="16" rx="3" fill="${c}cc"/>
+        <rect x="22" y="50" width="8" height="16" rx="3" fill="${c}cc"/>
+        <rect x="12" y="62" width="11" height="7" rx="2" fill="#1a1a2e"/>
+        <rect x="21" y="62" width="11" height="7" rx="2" fill="#1a1a2e"/>
+      </svg>
+      <div style="position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);background:${c};color:#fff;font-size:8px;font-weight:700;padding:2px 6px;border-radius:8px;white-space:nowrap;font-family:monospace;border:1px solid rgba(255,255,255,.3)">${(type||'EMG').toUpperCase()}</div>
+    </div>`,iconSize:[40,83],iconAnchor:[20,72],popupAnchor:[0,-72]});
+}
+
+function carIcon(col,lbl,yielded) {
+  const c=yielded?'#00dd66':col;
+  return L.divIcon({className:'',html:`
+    <div style="position:relative;text-align:center;filter:drop-shadow(0 2px 6px ${c}80)">
+      <div style="position:absolute;top:-17px;left:50%;transform:translateX(-50%);background:${c};color:#fff;font-size:8px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;font-family:monospace">${yielded?'✅ YIELD':lbl}</div>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 28" width="44" height="26">
+        <rect x="2" y="10" width="44" height="16" rx="3" fill="${c}"/>
+        <rect x="9" y="4" width="26" height="10" rx="3" fill="${c}"/>
+        <rect x="10" y="5" width="11" height="7" rx="2" fill="rgba(140,200,255,.45)"/>
+        <rect x="22" y="5" width="11" height="7" rx="2" fill="rgba(140,200,255,.45)"/>
+        <rect x="2" y="12" width="5" height="5" rx="1" fill="#ffff88" opacity=".9"/>
+        <rect x="41" y="12" width="5" height="5" rx="1" fill="#ff4444" opacity=".9"/>
+        <circle cx="12" cy="26" r="5" fill="#1a1a2e"/><circle cx="12" cy="26" r="2.5" fill="#333"/>
+        <circle cx="36" cy="26" r="5" fill="#1a1a2e"/><circle cx="36" cy="26" r="2.5" fill="#333"/>
+      </svg>
+    </div>`,iconSize:[44,43],iconAnchor:[22,26]});
+}
+
+function sigIcon(evNear) {
+  const c=evNear?'#00ff00':'#ff0000';
+  return L.divIcon({className:'',html:`
+    <div style="filter:drop-shadow(0 0 8px ${c})">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 50" width="28" height="50">
+        <rect x="13" y="28" width="2" height="22" fill="#445"/>
+        <rect x="4" y="3" width="20" height="27" rx="4" fill="#111"/>
+        <circle cx="14" cy="10" r="5.5" fill="${evNear?'#002200':'#ff0000'}"/>
+        ${!evNear?`<circle cx="14" cy="10" r="5.5" fill="#ff0000"><animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite"/></circle>`:''}
+        <circle cx="14" cy="20" r="5.5" fill="#1a1200"/>
+        <circle cx="14" cy="30" r="5.5" fill="${evNear?'#00ff00':'#001500'}"/>
+        ${evNear?`<circle cx="14" cy="30" r="5.5" fill="#00ff00"><animate attributeName="opacity" values="1;0.7;1" dur="1.5s" repeatCount="indefinite"/></circle>`:''}
+      </svg>
+    </div>`,iconSize:[28,50],iconAnchor:[14,50],popupAnchor:[0,-50]});
+}
+
+// ── FIREBASE LISTENERS ────────────────────────────────────────
+DB.emergency.on('value',s=>{
+  const d=s.val();
+  document.getElementById('noev').style.display=d&&d.active?'none':'block';
+
+  if(!d||!d.active||d.lat==null){
+    if(evM){map.removeLayer(evM);evM=null;}
+    if(v2vCirc){map.removeLayer(v2vCirc);v2vCirc=null;}
+    if(v2iCirc){map.removeLayer(v2iCirc);v2iCirc=null;}
+    if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+    evLat=null;evLng=null;
+    document.getElementById('ev_badge').className='badge off';
+    document.getElementById('ev_badge').textContent='Offline';
+    document.getElementById('ev_info').textContent='Not active';
+    document.getElementById('uc_ev').classList.remove('alive');
+    document.getElementById('evpos').textContent='EV: Standby';
+    document.getElementById('evspd').textContent='—';
+    document.getElementById('evhdg').textContent='—';
+    unitsOnline.delete('ev');updUnits();return;
+  }
+
+  evLat=d.lat;evLng=d.lng;
+  cntBC++;document.getElementById('sbc').textContent=cntBC;
+  unitsOnline.add('ev');updUnits();
+
+  document.getElementById('evpos').textContent='🔴 EV: '+d.lat.toFixed(5)+'°N';
+  document.getElementById('evspd').textContent='⚡ '+d.speed+' km/h';
+  document.getElementById('evhdg').textContent='🧭 '+Math.round(d.heading||0)+'° '+bearingToDir(d.heading||0);
+  document.getElementById('aevSpd').textContent=d.speed+' km/h';
+  document.getElementById('aevAcc').textContent='±'+d.accuracy+'m';
+
+  // EV marker
+  const pos=[d.lat,d.lng];
+  if(!evM){evM=L.marker(pos,{icon:evIcon(d.type),zIndexOffset:1000}).addTo(map).bindPopup('<b>🚨 Emergency Vehicle</b><br>Type: '+d.type+'<br>Speed: '+d.speed+' km/h<br>Heading: '+Math.round(d.heading||0)+'°');}
+  else evM.setLatLng(pos).setIcon(evIcon(d.type));
+
+  // Auto-track
+  if(trackEV)map.panTo(pos,{animate:true,duration:.5});
+
+  // V2V/V2I circles
+  if(v2vCirc)map.removeLayer(v2vCirc);
+  if(v2iCirc)map.removeLayer(v2iCirc);
+  if(showV2V)v2vCirc=L.circle(pos,{radius:RANGE_V2V,color:'#ffaa00',fillColor:'#ffaa00',fillOpacity:.08,weight:1.5,dashArray:'6,5'}).addTo(map).bindTooltip('V2V Zone: 50m',{sticky:true});
+  if(showV2I)v2iCirc=L.circle(pos,{radius:RANGE_V2I,color:'#ff2233',fillColor:'#ff2233',fillOpacity:.04,weight:1.5,dashArray:'10,8'}).addTo(map).bindTooltip('V2I Zone: 100m',{sticky:true});
+
+  // Route polyline from history
+  if(routeLine)map.removeLayer(routeLine);
+  const hist=d.routeHistory;
+  if(showRoute&&hist){
+    let pts=[];
+    if(Array.isArray(hist))pts=hist.map(p=>[p.lat,p.lng]);
+    else if(typeof hist==='object')pts=Object.values(hist).map(p=>[p.lat,p.lng]);
+    if(pts.length>1){
+      routeLine=L.polyline(pts,{color:'rgba(255,100,50,.5)',weight:3,dashArray:'6,8'}).addTo(map);
+      // Route length
+      let len=0;
+      for(let i=1;i<pts.length;i++)len+=haversine(pts[i-1][0],pts[i-1][1],pts[i][0],pts[i][1]);
+      routeLen=len;
+      document.getElementById('srt').textContent=len>=1000?(len/1000).toFixed(2)+' km':len+'m';
+    }
+  }
+
+  // Unit card
+  document.getElementById('ev_badge').className='badge red';
+  document.getElementById('ev_badge').textContent='🔴 ACTIVE';
+  document.getElementById('uc_ev').classList.add('alive');
+  document.getElementById('ev_info').innerHTML=`<span class="uv">${d.type?.toUpperCase()}</span><br>
+    Lat: <span class="uv">${d.lat.toFixed(6)}</span><br>
+    Lng: <span class="uv">${d.lng.toFixed(6)}</span><br>
+    Speed: <span class="uv">${d.speed} km/h</span> &nbsp; Hdg: <span class="uv">${Math.round(d.heading||0)}°</span>`;
+
+  // Update analytics distances
+  if(sigLat!==null)document.getElementById('aevSig').textContent=haversine(evLat,evLng,sigLat,sigLng)+'m';
+  if(v1Lat!==null)document.getElementById('aevV1').textContent=haversine(evLat,evLng,v1Lat,v1Lng)+'m';
+  if(v2Lat!==null)document.getElementById('aevV2').textContent=haversine(evLat,evLng,v2Lat,v2Lng)+'m';
+});
+
+DB.signal.on('value',s=>{
+  const d=s.val();
+  const evNear=!!(d&&d.mode==='emergency');
+  const lat=d&&d.lat;const lng=d&&d.lng;
+
+  if(!lat){unitsOnline.delete('sig');updUnits();return;}
+  sigLat=lat;sigLng=lng;
+  unitsOnline.add('sig');updUnits();
+
+  if(!sigM)sigM=L.marker([lat,lng],{icon:sigIcon(evNear),zIndexOffset:500}).addTo(map).bindPopup('<b>🚦 Traffic Signal</b><br>V2I Receiver');
+  else sigM.setLatLng([lat,lng]).setIcon(sigIcon(evNear));
+
+  if(evNear){
+    cntV2I++;document.getElementById('sv2i').textContent=cntV2I;
+    document.getElementById('sig_badge').className='badge green';document.getElementById('sig_badge').textContent='V2I ✅';
+    document.getElementById('uc_sig').classList.add('alive');
+    document.getElementById('sig_info').innerHTML=`V2I ACTIVE<br>Dist EV: <span class="uv">${d.evDist||'?'}m</span><br>N/S: <span class="uv" style="color:#0f0">GREEN</span> | E/W: <span class="uv" style="color:#f44">RED</span>`;
+  } else {
+    document.getElementById('sig_badge').className='badge yellow';document.getElementById('sig_badge').textContent='Normal';
+    document.getElementById('uc_sig').classList.remove('alive');
+    document.getElementById('sig_info').innerHTML=`Pos: <span class="uv">${lat.toFixed(5)}°N</span><br>Mode: <span class="uv">Normal Cycle</span>`;
+  }
+  if(evLat!==null)document.getElementById('aevSig').textContent=haversine(evLat,evLng,lat,lng)+'m';
+});
+
+DB.vehicle1.on('value',s=>{
+  const d=s.val();
+  if(!d||d.lat==null){
+    if(v1M){map.removeLayer(v1M);v1M=null;}
+    document.getElementById('v1_badge').className='badge off';document.getElementById('v1_badge').textContent='Offline';
+    document.getElementById('v1_info').textContent='Not connected';
+    unitsOnline.delete('v1');updUnits();return;
+  }
+  v1Lat=d.lat;v1Lng=d.lng;
+  unitsOnline.add('v1');updUnits();
+  if(!v1M)v1M=L.marker([d.lat,d.lng],{icon:carIcon('#4466ff','V1',d.yield)}).addTo(map).bindPopup('<b>🚗 Vehicle 1</b>');
+  else v1M.setLatLng([d.lat,d.lng]).setIcon(carIcon('#4466ff','V1',d.yield));
+  document.getElementById('v1_badge').className='badge '+(d.yield?'green':d.alert?'red':'blue');
+  document.getElementById('v1_badge').textContent=d.yield?'✅ Yielded':d.alert?'⚠️ Alert':'Online';
+  document.getElementById('uc_v1').classList.toggle('alive',!!(d.yield||d.alert));
+  document.getElementById('v1_info').innerHTML=`Lat: <span class="uv">${d.lat.toFixed(5)}</span><br>Lng: <span class="uv">${d.lng.toFixed(5)}</span><br>Acc: <span class="uv">±${d.accuracy||'?'}m</span>`;
+  if(d.yield){cntV2V++;document.getElementById('sv2v').textContent=cntV2V;}
+  if(evLat!==null)document.getElementById('aevV1').textContent=haversine(evLat,evLng,d.lat,d.lng)+'m';
+});
+
+DB.vehicle2.on('value',s=>{
+  const d=s.val();
+  if(!d||d.lat==null){
+    if(v2M){map.removeLayer(v2M);v2M=null;}
+    document.getElementById('v2_badge').className='badge off';document.getElementById('v2_badge').textContent='Offline';
+    document.getElementById('v2_info').textContent='Not connected';
+    unitsOnline.delete('v2');updUnits();return;
+  }
+  v2Lat=d.lat;v2Lng=d.lng;
+  unitsOnline.add('v2');updUnits();
+  if(!v2M)v2M=L.marker([d.lat,d.lng],{icon:carIcon('#aa44ff','V2',d.yield)}).addTo(map).bindPopup('<b>🚙 Vehicle 2</b>');
+  else v2M.setLatLng([d.lat,d.lng]).setIcon(carIcon('#aa44ff','V2',d.yield));
+  document.getElementById('v2_badge').className='badge '+(d.yield?'green':d.alert?'red':'purple');
+  document.getElementById('v2_badge').textContent=d.yield?'✅ Yielded':d.alert?'⚠️ Alert':'Online';
+  document.getElementById('uc_v2').classList.toggle('alive',!!(d.yield||d.alert));
+  document.getElementById('v2_info').innerHTML=`Lat: <span class="uv">${d.lat.toFixed(5)}</span><br>Lng: <span class="uv">${d.lng.toFixed(5)}</span><br>Acc: <span class="uv">±${d.accuracy||'?'}m</span>`;
+  if(d.yield){cntV2V++;document.getElementById('sv2v').textContent=cntV2V;}
+  if(evLat!==null)document.getElementById('aevV2').textContent=haversine(evLat,evLng,d.lat,d.lng)+'m';
+});
+
+DB.events.orderByChild('serverTime').limitToLast(100).on('child_added',s=>{
+  const d=s.val();if(!d)return;
+  const box=document.getElementById('logbox');
+  const el=document.createElement('div');
+  const tm={alert:'a',v2i:'v',v2v:'w',info:'i',done:'v'};
+  el.className='litem '+(tm[d.type]||'i');
+  el.innerHTML=`<span class="lt">${d.timestamp?new Date(d.timestamp).toLocaleTimeString('en-IN',{hour12:false}):'—'}</span><span>${d.message||''}</span>`;
+  box.prepend(el);
+  while(box.children.length>100)box.removeChild(box.lastChild);
+});
+
+// ── UI CONTROLS ───────────────────────────────────────────────
+function switchTab(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('show'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('show');
+  el.classList.add('on');
+}
+
+function toggleTrack(){
+  trackEV=!trackEV;
+  const btn=document.getElementById('trackBtn');
+  btn.classList.toggle('on',trackEV);
+  btn.textContent=trackEV?'📍 Tracking EV':'📍 Track EV';
+}
+function toggleV2V(){
+  showV2V=!showV2V;
+  document.getElementById('mcv2v').classList.toggle('on',showV2V);
+  if(!showV2V&&v2vCirc){map.removeLayer(v2vCirc);v2vCirc=null;}
+}
+function toggleV2I(){
+  showV2I=!showV2I;
+  document.getElementById('mcv2i').classList.toggle('on',showV2I);
+  if(!showV2I&&v2iCirc){map.removeLayer(v2iCirc);v2iCirc=null;}
+}
+function toggleRoute(){
+  showRoute=!showRoute;
+  document.getElementById('mcrt').classList.toggle('on',showRoute);
+  if(!showRoute&&routeLine){map.removeLayer(routeLine);routeLine=null;}
+}
+function resetMap(){
+  const pts=[];
+  if(evM)pts.push(evM.getLatLng());
+  if(sigM)pts.push(sigM.getLatLng());
+  if(v1M)pts.push(v1M.getLatLng());
+  if(v2M)pts.push(v2M.getLatLng());
+  if(pts.length)map.fitBounds(L.latLngBounds(pts),{padding:[40,40],maxZoom:18});
+  else map.setView([20.5937,78.9629],5);
+}
+
+// ── ADMIN AUTH GUARD (DB-based) ───────────────────────────────
+// Check Firebase Auth state first, then fall back to sessionStorage
+auth.onAuthStateChanged(async user => {
+  const s = getSession();
+
+  if (user) {
+    // Firebase Auth user — verify against /v4/admins
+    const isAdmin = await checkIsAdmin(user.uid);
+    if (!isAdmin) {
+      // Not in admins list and not a demo session
+      if (!s.isAdmin) { window.location.href = 'login.html'; return; }
+    } else {
+      setSession({ user: user.displayName || user.email.split('@')[0], email: user.email, uid: user.uid, isAdmin: true });
+    }
+    const name = (user.displayName || user.email.split('@')[0]).toUpperCase();
+    const badge = document.getElementById('adminBadge');
+    const isSuperAdmin = user.email === SUPER_ADMIN_EMAIL;
+    if (badge) badge.textContent = (isSuperAdmin ? '⭐ ' : '🔐 ') + name;
+    return;
+  }
+
+  // No Firebase Auth user — check sessionStorage (demo admin)
+  if (!s.user || !s.isAdmin) {
+    window.location.href = 'login.html';
+    return;
+  }
+  const badge = document.getElementById('adminBadge');
+  if (badge) badge.textContent = '🔐 ' + (s.user || 'ADMIN');
+});
+
+// ── USER MANAGEMENT ───────────────────────────────────────────
+let allUsersCache = {};
+let allAdminsCache = {};
+
+// Listen to /v4/users in real-time
+db.ref('v4/users').on('value', snap => {
+  allUsersCache = snap.val() || {};
+  renderUsers(document.getElementById('usersFilter').value);
+});
+
+// Listen to /v4/admins in real-time
+db.ref('v4/admins').on('value', snap => {
+  allAdminsCache = snap.val() || {};
+  renderUsers(document.getElementById('usersFilter').value);
+  renderAdmins();
+});
+
+function filterUsers(q) { renderUsers(q); }
+
+function renderUsers(query) {
+  const box = document.getElementById('usersBox');
+  if (!box) return;
+  const q = (query || '').toLowerCase();
+  const entries = Object.entries(allUsersCache);
+  if (!entries.length) { box.innerHTML = '<div style="font-size:.62rem;color:#334">No users signed in yet</div>'; return; }
+
+  const filtered = entries.filter(([uid, u]) =>
+    !q || (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)
+  );
+
+  box.innerHTML = '';
+  filtered.forEach(([uid, u]) => {
+    const isAdmin   = !!allAdminsCache[uid];
+    const isSuper   = isAdmin && allAdminsCache[uid].isSuperAdmin;
+    const isBanned  = u.status === 'banned';
+    const div = document.createElement('div');
+    div.className = 'user-item' + (isBanned ? ';opacity:.5' : '');
+    div.innerHTML = `
+      <div class="user-avatar-sm">${u.photo ? `<img src="${u.photo}" onerror="this.parentNode.textContent='👤'">` : '👤'}</div>
+      <div class="user-info">
+        <div class="un">${u.name || 'Unknown'}${isBanned ? ' <span style="color:#f55;font-size:.5rem">[BANNED]</span>' : ''}</div>
+        <div class="ue">${u.email || ''}</div>
+      </div>
+      ${isSuper ? '<span class="badge-super">⭐ SUPER</span>' : isAdmin ? '<span class="badge-admin">🔐 ADMIN</span>' : '<span class="badge-user">👤 USER</span>'}
+      <div class="user-actions">
+        ${!isAdmin && !isBanned ? `<button class="ua-btn ua-promote" onclick="promoteUserUi('${uid}','${u.email}','${u.name}')">✅ Admin</button>` : ''}
+        ${isAdmin && !isSuper ? `<button class="ua-btn ua-demote" onclick="demoteUserUi('${uid}','${u.email}')">❌ Revoke</button>` : ''}
+        ${!isSuper && !isBanned ? `<button class="ua-btn ua-ban" onclick="banUserUi('${uid}','${u.email}')">🚫 Ban</button>` : ''}
+        ${isBanned ? `<button class="ua-btn ua-unban" onclick="unbanUserUi('${uid}')">✅ Unban</button>` : ''}
+        ${!isSuper ? `<button class="ua-btn ua-remove" onclick="removeUserUi('${uid}','${u.email}')">🗑 Remove</button>` : ''}
+      </div>`;
+    box.appendChild(div);
+  });
+  if (!filtered.length) box.innerHTML = '<div style="font-size:.62rem;color:#334">No users match</div>';
+}
+
+function renderAdmins() {
+  const box = document.getElementById('adminsBox');
+  if (!box) return;
+  const entries = Object.entries(allAdminsCache);
+  if (!entries.length) { box.innerHTML = '<div style="font-size:.62rem;color:#334">No admins yet</div>'; return; }
+  box.innerHTML = '';
+  entries.forEach(([uid, a]) => {
+    const isSuper = !!a.isSuperAdmin;
+    const div = document.createElement('div');
+    div.className = 'user-item';
+    div.innerHTML = `
+      <div class="user-dot" style="background:${isSuper?'#fc6':'#f66'}"></div>
+      <div class="user-info">
+        <div class="un">${a.name || 'Unknown'}</div>
+        <div class="ue">${a.email || ''} · Added by: ${a.addedBy||'system'}</div>
+      </div>
+      ${isSuper ? '<span class="badge-super">⭐ SUPER</span>' : '<span class="badge-admin">🔐 ADMIN</span>'}
+      ${!isSuper ? `<div class="user-actions"><button class="ua-btn ua-demote" onclick="demoteUser('${uid}','${a.email}')">❌ Remove</button></div>` : ''}`;
+    box.appendChild(div);
+  });
+}
+
+function promoteUserUi(uid, email, name) {
+  if (!confirm(`Promote ${name} (${email}) to Admin?`)) return;
+  const s = getSession();
+  promoteToAdmin(uid, email, name, s.uid || 'admin')
+    .then(() => logEvent('info', '⬆️ Promoted: ' + email))
+    .catch(e => alert('Error: ' + e.message));
+}
+
+function demoteUserUi(uid, email) {
+  if (email === SUPER_ADMIN_EMAIL) { alert('⛔ Cannot remove the Super Admin.'); return; }
+  if (!confirm(`Revoke admin access from ${email}?`)) return;
+  demoteAdmin(uid, email)
+    .then(() => logEvent('info', '⬇️ Revoked: ' + email))
+    .catch(e => alert('Error: ' + (e.message || e)));
+}
+
+function banUserUi(uid, email) {
+  if (email === SUPER_ADMIN_EMAIL) { alert('⛔ Cannot ban the Super Admin.'); return; }
+  const reason = prompt(`Ban ${email}?\nEnter reason (or leave blank):`);
+  if (reason === null) return; // cancelled
+  const s = getSession();
+  banUser(uid, email, reason || 'Removed by admin', s.uid || 'admin')
+    .then(() => logEvent('info', '🚫 Banned: ' + email))
+    .catch(e => alert('Error: ' + (e.message || e)));
+}
+
+function unbanUserUi(uid) {
+  if (!confirm('Remove ban from this user?')) return;
+  unbanUser(uid)
+    .then(() => logEvent('info', '✅ Unbanned: ' + uid))
+    .catch(e => alert('Error: ' + (e.message || e)));
+}
+
+function removeUserUi(uid, email) {
+  if (email === SUPER_ADMIN_EMAIL) { alert('⛔ Cannot remove the Super Admin.'); return; }
+  if (!confirm(`Remove ${email} from the users list?\n\nThey can sign in again fresh. To permanently block, use Ban instead.`)) return;
+  removeUser(uid)
+    .then(() => logEvent('info', '🗑 Removed user record: ' + email))
+    .catch(e => alert('Error: ' + (e.message || e)));
+}
+
+// Legacy aliases
+const promoteUser = promoteUserUi;
+const demoteUser  = demoteUserUi;
+
+function updUnits(){
+  const n=unitsOnline.size;
+  document.getElementById('uc').textContent=n+'/4 online';
+  document.getElementById('aUnits').textContent=n+'/4';
+}
+
+function clearDB(){
+  if(confirm('Delete ALL v4 Firebase data?')){
+    db.ref('v4').remove();
+  }
+}
+
+// ── BANNED USERS PANEL ───────────────────────────────────────
+let allBannedCache = {};
+db.ref('v4/banned').on('value', snap => {
+  allBannedCache = snap.val() || {};
+  renderBanned();
+});
+
+function renderBanned() {
+  const box = document.getElementById('bannedBox');
+  if (!box) return;
+  const entries = Object.entries(allBannedCache);
+  if (!entries.length) { box.innerHTML = '<div style="font-size:.62rem;color:#334">No banned users</div>'; return; }
+  box.innerHTML = '';
+  entries.forEach(([uid, b]) => {
+    const div = document.createElement('div');
+    div.className = 'user-item';
+    div.innerHTML = `
+      <div class="user-dot" style="background:#f44"></div>
+      <div class="user-info">
+        <div class="un" style="color:#f88">${b.email || uid}</div>
+        <div class="ue">Reason: ${b.reason || '—'} · By: ${b.bannedBy || '?'}</div>
+      </div>
+      <span class="badge-user" style="border-color:rgba(255,34,51,.4);color:#f55">🚫 BANNED</span>
+      <div class="user-actions"><button class="ua-btn ua-unban" onclick="unbanUserUi('${uid}')">✅ Unban</button></div>`;
+    box.appendChild(div);
+  });
+}
+
+
+// ── ADMIN: RANGE CONTROLS ─────────────────────────────────────
+function updateRangeLabel(type, val) {
+  document.getElementById('rv2'+type+'Label').textContent = val + ' m';
+}
+
+function pushRanges() {
+  const v2v = parseInt(document.getElementById('rv2v').value);
+  const v2i = parseInt(document.getElementById('rv2i').value);
+  if (v2i <= v2v) { alert('V2I range must be greater than V2V range'); return; }
+  db.ref('v4/config').set({ rangeV2V: v2v, rangeV2I: v2i });
+  document.getElementById('aV2V').textContent = v2v + 'm';
+  document.getElementById('aV2I').textContent = v2i + 'm';
+  logEvent('info', '⚙️ Admin updated ranges: V2V=' + v2v + 'm, V2I=' + v2i + 'm');
+  const btn = event.target;
+  btn.textContent = '✅ Ranges Applied!';
+  btn.style.color = '#4f8';
+  setTimeout(() => { btn.textContent = '📡 Apply Ranges to All Nodes'; btn.style.color = ''; }, 2000);
+}
+
+// Sync range sliders when Firebase config changes
+document.addEventListener('rangesUpdated', e => {
+  document.getElementById('rv2v').value = e.detail.v2v;
+  document.getElementById('rv2i').value = e.detail.v2i;
+  document.getElementById('rv2vLabel').textContent = e.detail.v2v + ' m';
+  document.getElementById('rv2iLabel').textContent = e.detail.v2i + ' m';
+  document.getElementById('aV2V').textContent = e.detail.v2v + 'm';
+  document.getElementById('aV2I').textContent = e.detail.v2i + 'm';
+  const v2vLbl = document.getElementById('mcv2v');
+  if (v2vLbl) v2vLbl.textContent = '🟡 V2V ' + e.detail.v2v + 'm';
+  const v2iLbl = document.getElementById('mcv2i');
+  if (v2iLbl) v2iLbl.textContent = '🔵 V2I ' + e.detail.v2i + 'm';
+});
+
+// ── ADMIN: INTERSECTION OVERRIDES ─────────────────────────────
+function updateIntRotation(val) {
+  document.getElementById('intRotLabel').textContent = val + '°';
+  if(intersectionWidget) {
+    intersectionWidget.setRotation(val);
+    db.ref('v4/config/intersection/rotation').set(parseInt(val));
+  }
+}
+function updateIntSize(val) {
+  document.getElementById('intSizeLabel').textContent = val + 'm';
+  if(intersectionWidget) {
+    intersectionWidget.setSize(val);
+    db.ref('v4/config/intersection/sizeMeters').set(parseInt(val));
+  }
+}
+
+db.ref('v4/config/intersection').on('value', snap => {
+  const cfg = snap.val();
+  if (cfg && intersectionWidget) {
+    if (cfg.rotation !== undefined && cfg.rotation !== intersectionWidget.rotation) {
+      document.getElementById('intRot').value = cfg.rotation;
+      document.getElementById('intRotLabel').textContent = cfg.rotation + '°';
+      intersectionWidget.setRotation(cfg.rotation);
+    }
+    if (cfg.sizeMeters !== undefined && cfg.sizeMeters !== intersectionWidget.sizeMeters) {
+      document.getElementById('intSize').value = cfg.sizeMeters;
+      document.getElementById('intSizeLabel').textContent = cfg.sizeMeters + 'm';
+      intersectionWidget.setSize(cfg.sizeMeters);
+    }
+    if (cfg.lat !== undefined && cfg.lng !== undefined) {
+      if(Math.abs(cfg.lat - intersectionWidget.center.lat) > 0.00001 || Math.abs(cfg.lng - intersectionWidget.center.lng) > 0.00001) {
+        intersectionWidget.center = L.latLng(cfg.lat, cfg.lng);
+        if(intersectionWidget.centerMarker) intersectionWidget.centerMarker.setLatLng(intersectionWidget.center);
+        intersectionWidget.updateView();
+      }
+    }
+  }
+});
+
+// ── ADMIN: SIGNAL OVERRIDE ────────────────────────────────────
+function forceSignal(state) {
+  DB.signal.update({ adminOverride: state, adminTs: getTimestamp() });
+  logEvent('info', '⚙️ Admin forced signal: ' + state.toUpperCase());
+  const labels = { green:'🟢 GREEN forced', red:'🔴 RED forced', normal:'⚡ Normal cycle restored' };
+  const b = document.getElementById('sessionsBox');
+  const msg = document.createElement('div');
+  msg.style.cssText = 'color:#fc6;font-size:.62rem;padding:4px;font-family:monospace';
+  msg.textContent = '[Signal] ' + (labels[state] || state);
+  b.prepend(msg);
+}
+
+// ── ADMIN: BROADCAST ──────────────────────────────────────────
+function sendBroadcast() {
+  const msg = document.getElementById('broadcastMsg').value.trim();
+  if (!msg) return;
+  db.ref('v4/broadcast').set({ message: msg, ts: getTimestamp(), t: firebase.database.ServerValue.TIMESTAMP });
+  logEvent('info', '📢 Admin broadcast: ' + msg);
+  document.getElementById('broadcastMsg').value = '';
+  const btn = event.target;
+  btn.textContent = '✅ Sent!';
+  btn.style.color = '#4f8';
+  setTimeout(() => { btn.textContent = '📢 Send to All Units'; btn.style.color = ''; }, 2000);
+}
+
+// ── ADMIN: RESET UNITS ────────────────────────────────────────
+function resetAllUnits() {
+  if (!confirm('Reset all unit states (EV, vehicles, signal)? This clears live data.')) return;
+  DB.emergency.remove();
+  DB.vehicle1.remove();
+  DB.vehicle2.remove();
+  DB.signal.update({ mode: 'normal', evApproaching: false, adminOverride: null });
+  logEvent('info', '🔄 Admin reset all unit states');
+}
+
+// ── ADMIN: SESSION VIEWER ─────────────────────────────────────
+db.ref('v4/sessions').on('value', snap => {
+  const box = document.getElementById('sessionsBox');
+  if (!box) return;
+  const data = snap.val();
+  if (!data) { box.innerHTML = '<div style="font-size:.62rem;color:#334">No sessions logged yet</div>'; return; }
+  const cols = { ev:'#f23', signal:'#fa0', vehicle1:'#4466ff', vehicle2:'#aa44ff' };
+  box.innerHTML = '';
+  Object.entries(data).forEach(([role, info]) => {
+    const d = document.createElement('div');
+    d.className = 'user-item';
+    d.innerHTML = `<div class="user-dot" style="background:${cols[role]||'#445'}"></div>
+      <span style="color:#aab;flex:1">${info.user||'?'}</span>
+      <span style="color:${cols[role]||'#445'};font-size:.55rem;font-weight:700">${role.toUpperCase()}</span>`;
+    box.appendChild(d);
+  });
+});
+
+// ── ADMIN: BROADCAST LISTENER (log to control) ────────────────
+db.ref('v4/broadcast').on('value', snap => {
+  const d = snap.val();
+  if (d && d.message) {
+    const box = document.getElementById('logbox');
+    const el = document.createElement('div');
+    el.className = 'litem w';
+    el.innerHTML = `<span class="lt">${new Date(d.ts||'').toLocaleTimeString('en-IN',{hour12:false})}</span><span>📢 ADMIN: ${d.message}</span>`;
+    box.prepend(el);
+  }
+});
+
+// ── EV ROUTE PLANNING FUNCTIONS ───────────────────────────────
+let routeStart = null;
+let routeDest = null;
+let evRouteControl = null;
+let evRouteLine = null;
+
+function setRouteStart() {
+  if (!map) return;
+  map.once('click', function(e) {
+    routeStart = e.latlng;
+    document.getElementById('route-start').textContent = `${routeStart.lat.toFixed(4)}, ${routeStart.lng.toFixed(4)}`;
+    console.log('📍 EV Route start set:', routeStart);
+  });
+  alert('Click on the map to set the EV route start point.');
+}
+
+function setRouteDestination() {
+  if (!map) return;
+  map.once('click', function(e) {
+    routeDest = e.latlng;
+    document.getElementById('route-dest').textContent = `${routeDest.lat.toFixed(4)}, ${routeDest.lng.toFixed(4)}`;
+    console.log('🎯 EV Route destination set:', routeDest);
+  });
+  alert('Click on the map to set the EV route destination point.');
+}
+
+function calculateEVRoute() {
+  if (!routeStart || !routeDest) {
+    alert('Please set both start and destination points first.');
+    return;
+  }
+
+  // Clear existing route
+  if (evRouteControl) {
+    map.removeControl(evRouteControl);
+  }
+  if (evRouteLine) {
+    map.removeLayer(evRouteLine);
+  }
+
+  // Create routing control
+  evRouteControl = L.Routing.control({
+    waypoints: [routeStart, routeDest],
+    routeWhileDragging: false,
+    createMarker: function() { return null; }, // No markers
+    lineOptions: {
+      styles: [{ color: '#ff2233', weight: 6, opacity: 0.8 }]
+    },
+    router: L.Routing.osrmv1({
+      serviceUrl: 'https://router.project-osrm.org/route/v1'
+    })
+  }).addTo(map);
+
+  // Listen for route found
+  evRouteControl.on('routesfound', function(e) {
+    const route = e.routes[0];
+    const distance = (route.summary.totalDistance / 1000).toFixed(1); // km
+    const time = Math.round(route.summary.totalTime / 60); // minutes
+
+    document.getElementById('route-distance').textContent = `${distance} km`;
+    document.getElementById('route-eta').textContent = `${time} min`;
+
+    // Store route for broadcasting
+    window.evRouteData = {
+      start: routeStart,
+      dest: routeDest,
+      waypoints: route.waypoints,
+      distance: distance,
+      time: time,
+      instructions: route.instructions
+    };
+
+    // Broadcast route to vehicles
+    broadcastEVRoute(window.evRouteData);
+
+    console.log('🛣️ EV Route calculated and broadcasted');
+  });
+
+  console.log('🛣️ Calculating EV route...');
+}
+
+function clearEVRoute() {
+  if (evRouteControl) {
+    map.removeControl(evRouteControl);
+    evRouteControl = null;
+  }
+  if (evRouteLine) {
+    map.removeLayer(evRouteLine);
+    evRouteLine = null;
+  }
+  routeStart = null;
+  routeDest = null;
+  document.getElementById('route-start').textContent = 'Not set';
+  document.getElementById('route-dest').textContent = 'Not set';
+  document.getElementById('route-distance').textContent = '—';
+  document.getElementById('route-eta').textContent = '—';
+  window.evRouteData = null;
+  console.log('🗑️ EV Route cleared');
+}
+
+function broadcastEVRoute(routeData) {
+  // Send route info to Firebase for vehicles to receive
+  DB.routes.set({
+    emergency: {
+      active: true,
+      route: routeData,
+      timestamp: Date.now()
+    }
+  });
+  console.log('📡 EV Route broadcasted to vehicles');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🚦 Traffic Signal — V2X v6.0</title>
+<meta name="description" content="V2I traffic signal node — V2X Connect v6.0">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#040410;--card:#0a0a1e;--border:rgba(255,255,255,.06);--green:#00ff44;--red:#ff2200;--yellow:#ffcc00;--cyan:#00e5ff;--dim:#334466}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#c8d8f0;min-height:100vh;overflow-x:hidden}
+
+/* STATUS BAR */
+.sbar{display:flex;align-items:center;gap:0;font-size:.65rem;font-weight:700;letter-spacing:1px}
+.sb-conn{padding:6px 16px;flex:1;text-align:center}
+.sb-conn.ok{background:rgba(0,220,100,.1);color:#0d6}
+.sb-conn.no{background:rgba(255,34,51,.08);color:#f23}
+.sb-gps{display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(255,255,255,.03);border-left:1px solid var(--border)}
+.gdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.gdot.s{background:#fa0;animation:bl 1s infinite}.gdot.a{background:#0d6;box-shadow:0 0 6px #0d6}.gdot.e{background:#f23}
+@keyframes bl{50%{opacity:.2}}
+
+/* HEADER */
+.hdr{
+  padding:14px 16px 10px;text-align:center;
+  background:linear-gradient(180deg,rgba(10,10,40,.9),rgba(4,4,16,.9));
+  border-bottom:1px solid rgba(255,204,0,.1);position:relative;
+}
+.hdr h1{font-family:'Orbitron';font-size:1.05rem;color:var(--yellow);letter-spacing:3px;margin-bottom:2px;text-shadow:0 0 25px rgba(255,204,0,.35)}
+.hdr p{font-size:.62rem;color:var(--dim)}
+.hdr-badge{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  padding:4px 10px;border-radius:8px;
+  background:rgba(255,204,0,.08);border:1px solid rgba(255,204,0,.2);
+  font-size:.58rem;color:var(--yellow);font-family:'Share Tech Mono';
+}
+.logout-chip{padding:4px 10px;border-radius:8px;border:1px solid rgba(255,204,0,.25);background:rgba(255,204,0,.07);color:#fc6;font-size:.58rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s;position:absolute;right:14px;top:50%;transform:translateY(-50%)}
+
+/* EMERGENCY BANNER */
+.alarm-wrap{display:none;padding:10px 12px}
+.alarm-wrap.show{display:block}
+.alarm{
+  border-radius:18px;border:2px solid var(--red);
+  background:linear-gradient(135deg,rgba(60,0,0,.95),rgba(100,0,0,.9));
+  padding:18px 16px;text-align:center;
+  animation:almpulse .7s ease-in-out infinite alternate;
+}
+@keyframes almpulse{to{box-shadow:0 0 50px rgba(255,0,0,.45)}}
+.alarm-ico{font-size:2.5rem;display:block;margin-bottom:6px}
+.alarm-title{font-family:'Orbitron';font-size:.9rem;color:#ff4444;letter-spacing:1px;margin-bottom:6px}
+.alarm-msg{font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:5px;line-height:1.3}
+.alarm-sub{font-size:.76rem;color:#aab}
+.alarm-bar{height:6px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden;margin-top:12px}
+.alarm-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#f00,#f80,#ff0);transition:.9s}
+
+/* EV ROUTE DISPLAY */
+.route-display{display:none;padding:12px 16px;margin:0 12px;border-radius:14px;background:linear-gradient(135deg,rgba(255,34,51,.08),rgba(255,170,0,.06));border:1px solid rgba(255,34,51,.2)}
+.route-display.show{display:block}
+.route-header{font-family:'Orbitron';font-size:.8rem;color:#ff4444;letter-spacing:1px;margin-bottom:8px;text-align:center}
+.route-info{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.7rem}
+.route-item{background:rgba(0,0,0,.3);padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,.1)}
+.route-label{color:#aab;font-family:'Share Tech Mono';font-size:.55rem;margin-bottom:2px}
+.route-value{color:#fff;font-weight:700;font-family:'Share Tech Mono'}
+
+
+
+/* ═══════════════════════════════════════
+   3D TRAFFIC LIGHT
+═══════════════════════════════════════ */
+.tl-section{padding:16px 12px 8px;display:flex;gap:20px;align-items:flex-start;justify-content:center}
+.tl-section-title{font-size:.52rem;color:var(--dim);letter-spacing:2px;font-weight:700;text-align:center;margin-bottom:8px}
+
+.tl-container{display:flex;flex-direction:column;align-items:center;gap:4px}
+.tl-dir-label{font-size:.55rem;color:var(--dim);letter-spacing:1.5px;font-weight:700;margin-bottom:4px}
+
+/* 3D Light Housing */
+.tl3d{
+  position:relative;
+  perspective:400px;
+}
+.tl-pole{
+  width:6px;height:42px;
+  background:linear-gradient(90deg,#1a1a2e,#2d2d4e,#1a1a2e);
+  border-radius:3px;margin:0 auto;
+  box-shadow:2px 0 4px rgba(0,0,0,.8);
+}
+.tl-arm{
+  width:36px;height:6px;
+  background:linear-gradient(180deg,#2d2d4e,#1a1a2e);
+  border-radius:3px;margin:0 auto;
+  box-shadow:0 2px 4px rgba(0,0,0,.8);
+}
+.tl-housing{
+  width:50px;
+  background:linear-gradient(90deg,#1a1a2a,#252538,#1a1a2a);
+  border-radius:10px;
+  padding:8px 5px;
+  display:flex;flex-direction:column;gap:5px;align-items:center;
+  position:relative;
+  box-shadow:
+    3px 3px 0 rgba(0,0,0,.6),
+    inset -2px -2px 5px rgba(0,0,0,.4),
+    inset 1px 1px 3px rgba(255,255,255,.04);
+  border:1px solid rgba(80,80,120,.3);
+  transform:rotateY(-4deg);
+  transform-style:preserve-3d;
+}
+/* Right side face for 3D depth */
+.tl-housing::after{
+  content:'';
+  position:absolute;
+  right:-7px;top:4px;bottom:4px;width:7px;
+  background:linear-gradient(90deg,#111128,#0d0d1e);
+  border-radius:0 4px 4px 0;
+  transform:rotateY(90deg);
+  transform-origin:left center;
+}
+/* Top cap */
+.tl-housing::before{
+  content:'';
+  position:absolute;
+  top:-6px;left:3px;right:-4px;height:6px;
+  background:linear-gradient(180deg,#2d2d48,#1a1a2a);
+  border-radius:4px 4px 0 0;
+  transform:rotateX(90deg);
+  transform-origin:bottom center;
+}
+
+/* LENS */
+.lens{
+  width:36px;height:36px;border-radius:50%;
+  position:relative;transition:all .4s ease;
+  box-shadow:inset 0 3px 6px rgba(0,0,0,.7),inset -2px -2px 4px rgba(0,0,0,.5);
+  background:#111;
+  border:2px solid rgba(0,0,0,.6);
+}
+/* specular highlight for 3D glass effect */
+.lens::after{
+  content:'';position:absolute;top:5px;left:6px;
+  width:35%;height:30%;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.35),transparent);
+  pointer-events:none;
+}
+/* Ring glow */
+.lens::before{content:'';position:absolute;inset:-3px;border-radius:50%;opacity:0;transition:.4s;border:2px solid transparent}
+
+/* OFF STATES (dark) */
+.lens.r-off{background:radial-gradient(circle at 40% 35%,#2a0500,#100000)}
+.lens.y-off{background:radial-gradient(circle at 40% 35%,#1a1200,#0a0800)}
+.lens.g-off{background:radial-gradient(circle at 40% 35%,#001200,#000a00)}
+
+/* ON STATES (neon glow) */
+.lens.r-on{
+  background:radial-gradient(circle at 40% 35%,#ff6644,#ff2200,#aa0000);
+  box-shadow:inset 0 3px 6px rgba(0,0,0,.5),0 0 18px rgba(255,34,0,.8),0 0 40px rgba(255,34,0,.4);
+  border-color:rgba(255,60,0,.4);
+  animation:rflicker 2.5s ease-in-out infinite;
+}
+.lens.r-on::before{border-color:rgba(255,60,0,.6);opacity:1;box-shadow:0 0 8px rgba(255,60,0,.5)}
+.lens.y-on{
+  background:radial-gradient(circle at 40% 35%,#ffe066,#ffcc00,#cc8800);
+  box-shadow:inset 0 3px 6px rgba(0,0,0,.3),0 0 16px rgba(255,200,0,.8),0 0 35px rgba(255,200,0,.35);
+  border-color:rgba(255,200,0,.4);
+  animation:yflicker 1s ease-in-out infinite;
+}
+.lens.y-on::before{border-color:rgba(255,200,0,.6);opacity:1}
+.lens.g-on{
+  background:radial-gradient(circle at 40% 35%,#66ff88,#00ff44,#00aa22);
+  box-shadow:inset 0 3px 6px rgba(0,0,0,.4),0 0 18px rgba(0,255,60,.8),0 0 40px rgba(0,255,60,.4);
+  border-color:rgba(0,255,60,.4);
+  animation:gflicker 3s ease-in-out infinite;
+}
+.lens.g-on::before{border-color:rgba(0,220,80,.6);opacity:1;box-shadow:0 0 8px rgba(0,255,60,.4)}
+
+@keyframes rflicker{0%,100%{opacity:1}45%{opacity:.85}50%{opacity:.9}}
+@keyframes yflicker{0%,100%{opacity:1}50%{opacity:.7}}
+@keyframes gflicker{0%,100%{opacity:1}70%{opacity:.9}}
+
+/* 4-WAY SIGNAL GRID */
+.signal-4way{
+  display:grid;
+  grid-template-areas:"  .  north  .  " "west  ctr  east" "  .  south  .  ";
+  grid-template-columns:100px 1fr 100px;
+  gap:10px;padding:0 12px 8px;align-items:center;
+}
+.tl-north{grid-area:north;display:flex;justify-content:center}
+.tl-south{grid-area:south;display:flex;justify-content:center}
+.tl-east{grid-area:east;display:flex;justify-content:flex-start}
+.tl-west{grid-area:west;display:flex;justify-content:flex-end}
+.tl-center{grid-area:ctr}
+
+/* INTERSECTION (2.5D STREET VIEW) */
+.intersection-wrap{
+  margin:0 12px 10px;border-radius:18px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.05);position:relative;
+}
+.intersection-title{font-size:.52rem;color:var(--cyan);letter-spacing:2px;font-weight:700;padding:8px 14px;background:rgba(0,229,255,.04);border-bottom:1px solid rgba(0,229,255,.08);display:flex;align-items:center;gap:8px}
+.intersection-title .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:bl 1.5s infinite}
+
+/* The 2.5D Scene */
+.scene-2d5{
+  width:100%;height:220px;
+  position:relative;overflow:hidden;
+  background:#1a1a28;
+}
+
+/* Isometric-style roads */
+.road-ns{
+  position:absolute;left:50%;top:0;bottom:0;
+  width:70px;transform:translateX(-50%);
+  background:linear-gradient(90deg,#1e1e2e 0,#2a2a3e 4px,#1e1e2e 4px,#1e1e2e 48%,#2a2a3e 48%,#2a2a3e 52%,#1e1e2e 52%,#1e1e2e 96%,#2a2a3e 96%,#2a2a3e 100%);
+}
+.road-ew{
+  position:absolute;top:50%;left:0;right:0;
+  height:70px;transform:translateY(-50%);
+  background:linear-gradient(0deg,#1e1e2e 0,#2a2a3e 4px,#1e1e2e 4px,#1e1e2e 48%,#2a2a3e 48%,#2a2a3e 52%,#1e1e2e 52%,#1e1e2e 96%,#2a2a3e 96%,#2a2a3e 100%);
+}
+
+/* Sidewalks */
+.sw-n,.sw-s,.sw-e,.sw-w{position:absolute;background:#16162a}
+.sw-n{top:0;left:0;right:0;height:calc(50% - 35px)}
+.sw-s{bottom:0;left:0;right:0;height:calc(50% - 35px)}
+.sw-e{right:0;top:calc(50% - 35px);width:calc(50% - 35px);bottom:calc(50% - 35px)}
+.sw-w{left:0;top:calc(50% - 35px);width:calc(50% - 35px);bottom:calc(50% - 35px)}
+
+/* Crosswalk stripes */
+.cw{position:absolute;display:flex;flex-direction:column;gap:3px}
+.cw-n{top:calc(50% - 45px);left:calc(50% - 35px);width:70px;height:12px}
+.cw-s{bottom:calc(50% - 45px);left:calc(50% - 35px);width:70px;height:12px}
+.cw-e{right:calc(50% - 45px);top:calc(50% - 35px);height:70px;width:12px}
+.cw-w{left:calc(50% - 45px);top:calc(50% - 35px);height:70px;width:12px}
+.cw-stripe{background:rgba(255,255,255,.12);border-radius:1px}
+.cw-n .cw-stripe,.cw-s .cw-stripe{height:3px;width:100%;flex-shrink:0}
+.cw-e .cw-stripe,.cw-w .cw-stripe{width:3px;height:100%;flex-shrink:0}
+
+/* Center box */
+.int-box{
+  position:absolute;top:50%;left:50%;
+  width:70px;height:70px;transform:translate(-50%,-50%);
+  background:#1e1e2e;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;color:rgba(255,255,255,.2);letter-spacing:1px;font-weight:700;
+  border:1px solid rgba(255,255,255,.04);
+}
+
+/* Lane markings */
+.lane-ns-l,.lane-ns-r{position:absolute;top:0;bottom:0;width:1px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.2) 0,rgba(255,255,255,.2) 12px,transparent 12px,transparent 22px)}
+.lane-ns-l{left:calc(50% - 2px)}
+.lane-ns-r{right:calc(50% - 2px)}
+.lane-ew-t,.lane-ew-b{position:absolute;left:0;right:0;height:1px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.2) 0,rgba(255,255,255,.2) 12px,transparent 12px,transparent 22px)}
+.lane-ew-t{top:calc(50% - 2px)}
+.lane-ew-b{bottom:calc(50% - 2px)}
+
+/* Scenario vehicles */
+.sv{
+  position:absolute;font-size:1.2rem;transition:all 1.2s ease;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));
+}
+#sv-north{top:12%;left:calc(50% - 9px);transform:rotate(180deg)} /* going south */
+#sv-south{bottom:12%;left:calc(50% + 2px);transform:rotate(0deg)}
+#sv-east{right:10%;top:calc(50% - 12px);transform:rotate(-90deg)}
+#sv-west{left:10%;top:calc(50% + 2px);transform:rotate(90deg)}
+.sv-ev{font-size:1.4rem;filter:drop-shadow(0 0 8px rgba(255,60,0,.8))}
+
+/* EV approach arrow overlay */
+.ev-arrow{
+  position:absolute;pointer-events:none;
+  font-size:1.8rem;opacity:0;transition:all .5s;
+  animation:evpulse .6s ease-in-out infinite alternate;
+}
+.ev-arrow.show{opacity:1}
+@keyframes evpulse{to{transform:scale(1.15)}}
+
+/* Active green glow on road */
+.road-glow{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,rgba(0,255,60,.06),transparent 60%);
+  opacity:0;transition:.8s;
+}
+.road-glow.show{opacity:1}
+
+/* SIGNAL GRID SUMMARY */
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin:0 12px 10px}
+.sc{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:7px;text-align:center;transition:.4s}
+.sc.active{border-color:rgba(0,255,60,.3);box-shadow:0 0 10px rgba(0,255,60,.08)}
+.sc .sd{font-size:.48rem;color:var(--dim);letter-spacing:1px;margin-bottom:5px}
+.sdot{width:24px;height:24px;border-radius:50%;margin:0 auto 4px;transition:.4s}
+.sdot.red{background:#f00;box-shadow:0 0 8px rgba(255,0,0,.6)}
+.sdot.green{background:#0f0;box-shadow:0 0 8px rgba(0,255,0,.6)}
+.sdot.yellow{background:#ff0;box-shadow:0 0 6px rgba(255,255,0,.5)}
+.sdot.off{background:rgba(255,255,255,.06)}
+.sc .slbl{font-size:.62rem;font-weight:700;margin-top:2px}
+
+/* MODE BAR */
+.modebar{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:0 12px 10px;background:var(--card);border-radius:12px;
+  border:1px solid var(--border);padding:10px 14px;
+}
+.mode-lbl{font-size:.52rem;color:var(--dim);letter-spacing:2px}
+.mode-val{font-family:'Share Tech Mono';font-size:.85rem;color:var(--yellow);font-weight:700}
+.mode-val.emergency{color:var(--red);animation:bl 1s infinite}
+.mode-val.green-mode{color:var(--green)}
+.cycle-prog{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin:4px 0 0;width:100px}
+.cycle-prog-fill{height:100%;border-radius:2px;background:var(--yellow);transition:width .5s linear}
+
+/* INFO BOX */
+.infobox{margin:0 12px 10px;background:var(--card);border-radius:14px;border:1px solid rgba(255,204,0,.1);padding:12px}
+.ib-hdr{font-size:.5rem;color:var(--dim);letter-spacing:2px;margin-bottom:9px;font-weight:700;display:flex;align-items:center;gap:6px}
+.ib-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
+.irow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.02);font-size:.76rem}
+.irow:last-child{border-bottom:none}
+.irow .il{color:#446}.irow .iv{font-weight:700;color:#ccd;font-family:'Share Tech Mono'}
+
+/* LOG */
+.lbox{max-height:90px;overflow-y:auto;background:rgba(0,0,0,.2);border-radius:10px;padding:8px;margin:0 12px 14px}
+.lbox::-webkit-scrollbar{width:3px}.lbox::-webkit-scrollbar-thumb{background:#1a2233;border-radius:2px}
+.li{padding:3px 8px;margin-bottom:2px;border-radius:4px;font-size:.6rem;border-left:3px solid}
+.li.s{border-color:#4466ff;color:#8af}.li.a{border-color:#f23;color:#f88}
+.li.v{border-color:#0d6;color:#8fa}.li.w{border-color:#fa0;color:#fc6}
+.foot{text-align:center;padding:10px;font-size:.55rem;color:#1a2233}
+
+/* OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(4,4,16,.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:30px;text-align:center}
+.overlay.show{display:flex}
+.overlay h2{font-family:'Orbitron';color:var(--yellow);font-size:1rem;margin-bottom:10px}
+.overlay p{color:#556;font-size:.82rem;line-height:1.6;margin-bottom:20px}
+.overlay button{padding:12px 28px;border-radius:12px;border:none;background:var(--yellow);color:#000;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="sbar">
+  <div class="sb-conn no" id="conn">⚪ CONNECTING...</div>
+  <div class="sb-gps">
+    <div class="gdot s" id="gdot"></div>
+    <span style="color:var(--dim);font-size:.62rem" id="ginfo">Acquiring GPS...</span>
+    <span style="color:#4f8;font-size:.58rem" id="gacc"></span>
+  </div>
+</div>
+
+<div class="hdr">
+  <h1>🚦 TRAFFIC SIGNAL</h1>
+  <p>V2I Receiver — Real GPS · Smart Intersection Control · v6.0</p>
+  <button class="logout-chip" id="logoutChip" onclick="logoutSession()">⏏ Sign Out</button>
+</div>
+
+<!-- EMERGENCY BANNER -->
+<div class="alarm-wrap" id="alarmWrap">
+  <div class="alarm">
+    <span class="alarm-ico" id="almIco">🚨</span>
+    <div class="alarm-title">⚠️ EMERGENCY VEHICLE APPROACHING</div>
+    <div class="alarm-msg" id="almMsg">SIGNAL PREEMPTION ACTIVE</div>
+    <div class="alarm-sub" id="almSub">Calculating...</div>
+    <div class="alarm-bar"><div class="alarm-fill" id="almFill" style="width:50%"></div></div>
+  </div>
+</div>
+
+<!-- EV ROUTE DISPLAY -->
+<div class="route-display" id="routeDisplay">
+  <div class="route-header">🚨 EV ROUTE INFORMATION</div>
+  <div class="route-info">
+    <div class="route-item">
+      <div class="route-label">ROUTE ACTIVE</div>
+      <div class="route-value" id="routeActive">No Route</div>
+    </div>
+    <div class="route-item">
+      <div class="route-label">NEXT TURN</div>
+      <div class="route-value" id="routeTurn">—</div>
+    </div>
+    <div class="route-item">
+      <div class="route-label">DISTANCE</div>
+      <div class="route-value" id="routeDist">—</div>
+    </div>
+    <div class="route-item">
+      <div class="route-label">ETA</div>
+      <div class="route-value" id="routeEta">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ 3D TRAFFIC LIGHTS — 4-WAY ════ -->
+<div style="padding:4px 12px 2px;font-size:.5rem;color:var(--dim);letter-spacing:2px;font-weight:700">🚦 3D INTERSECTION SIGNALS</div>
+<div class="signal-4way">
+
+  <!-- NORTH -->
+  <div class="tl-north">
+    <div class="tl-container">
+      <div class="tl-dir-label">NORTH</div>
+      <div class="tl3d">
+        <div class="tl-housing">
+          <div class="lens r-on" id="nR"></div>
+          <div class="lens y-off" id="nY"></div>
+          <div class="lens g-off" id="nG"></div>
+        </div>
+        <div class="tl-arm"></div>
+      </div>
+      <div class="tl-pole"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: 2.5D SCENE -->
+  <div class="tl-center">
+    <div class="intersection-wrap">
+      <div class="intersection-title"><div class="dot"></div>LIVE 2.5D INTERSECTION VIEW</div>
+      <div class="scene-2d5" id="scene">
+        <!-- Sidewalks -->
+        <div class="sw-n"></div><div class="sw-s"></div>
+        <div class="sw-e"></div><div class="sw-w"></div>
+        <!-- Roads -->
+        <div class="road-ns"></div>
+        <div class="road-ew"></div>
+        <!-- Lane markings -->
+        <div class="lane-ns-l"></div><div class="lane-ns-r"></div>
+        <div class="lane-ew-t"></div><div class="lane-ew-b"></div>
+        <!-- Crosswalks -->
+        <div class="cw cw-n" id="cwn">
+          <div class="cw-stripe"></div><div class="cw-stripe"></div><div class="cw-stripe"></div>
+        </div>
+        <div class="cw cw-s" id="cws">
+          <div class="cw-stripe"></div><div class="cw-stripe"></div><div class="cw-stripe"></div>
+        </div>
+        <div class="cw cw-e" id="cwe">
+          <div class="cw-stripe"></div><div class="cw-stripe"></div><div class="cw-stripe"></div>
+        </div>
+        <div class="cw cw-w" id="cww">
+          <div class="cw-stripe"></div><div class="cw-stripe"></div><div class="cw-stripe"></div>
+        </div>
+        <!-- Road glow overlay -->
+        <div class="road-glow" id="rdGlow"></div>
+        <!-- Center box -->
+        <div class="int-box">V2X</div>
+        <!-- Scene vehicles -->
+        <div class="sv" id="sv-north">🚗</div>
+        <div class="sv" id="sv-south">🚙</div>
+        <div class="sv" id="sv-east">🚕</div>
+        <div class="sv" id="sv-west">🚌</div>
+        <!-- EV arrow -->
+        <div class="ev-arrow" id="evArrow" style="top:50%;left:50%;transform:translate(-50%,-50%)">🚨</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SOUTH -->
+  <div class="tl-south">
+    <div class="tl-container">
+      <div class="tl-pole"></div>
+      <div class="tl3d">
+        <div class="tl-arm"></div>
+        <div class="tl-housing">
+          <div class="lens r-on" id="sR"></div>
+          <div class="lens y-off" id="sY"></div>
+          <div class="lens g-off" id="sG"></div>
+        </div>
+      </div>
+      <div class="tl-dir-label">SOUTH</div>
+    </div>
+  </div>
+
+  <!-- WEST -->
+  <div class="tl-west">
+    <div class="tl-container">
+      <div class="tl-dir-label">WEST</div>
+      <div class="tl3d">
+        <div class="tl-housing">
+          <div class="lens r-on" id="wR"></div>
+          <div class="lens y-off" id="wY"></div>
+          <div class="lens g-off" id="wG"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EAST -->
+  <div class="tl-east">
+    <div class="tl-container">
+      <div class="tl-dir-label">EAST</div>
+      <div class="tl3d">
+        <div class="tl-housing">
+          <div class="lens r-on" id="eR"></div>
+          <div class="lens y-off" id="eY"></div>
+          <div class="lens g-off" id="eG"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- SIGNAL SUMMARY GRID -->
+<div class="sgrid">
+  <div class="sc" id="sc-n"><div class="sd">NORTH</div><div class="sdot red" id="sdn"></div><div class="slbl" id="ln" style="color:#f44">RED</div></div>
+  <div class="sc" id="sc-s"><div class="sd">SOUTH</div><div class="sdot red" id="sds"></div><div class="slbl" id="ls" style="color:#f44">RED</div></div>
+  <div class="sc" id="sc-e"><div class="sd">EAST</div><div class="sdot red" id="sde"></div><div class="slbl" id="le" style="color:#f44">RED</div></div>
+  <div class="sc" id="sc-w"><div class="sd">WEST</div><div class="sdot red" id="sdw"></div><div class="slbl" id="lw" style="color:#f44">RED</div></div>
+</div>
+
+<!-- MODE BAR -->
+<div class="modebar">
+  <div>
+    <div class="mode-lbl">SIGNAL MODE</div>
+    <div class="cycle-prog"><div class="cycle-prog-fill" id="cycleProg" style="width:0%"></div></div>
+  </div>
+  <div class="mode-val" id="cycleMode">NORMAL CYCLE</div>
+</div>
+
+<!-- INFO BOX -->
+<div class="infobox">
+  <div class="ib-hdr">📡 EMERGENCY VEHICLE DATA</div>
+  <div class="irow"><span class="il">EV Type</span><span class="iv" id="evType">None</span></div>
+  <div class="irow"><span class="il">Distance</span><span class="iv" id="evDist">—</span></div>
+  <div class="irow"><span class="il">Heading</span><span class="iv" id="evHdg">—</span></div>
+  <div class="irow"><span class="il">Speed</span><span class="iv" id="evSpd">—</span></div>
+  <div class="irow"><span class="il">My GPS</span><span class="iv" id="myGps">—</span></div>
+  <div class="irow"><span class="il">V2I Status</span><span class="iv" id="v2iStatus" style="color:#4f8">Standby</span></div>
+</div>
+
+<div style="padding:0 12px 5px;font-size:.5rem;color:var(--dim);letter-spacing:2px;font-weight:700">📜 SYSTEM LOG</div>
+<div class="lbox" id="lbox"></div>
+<div class="foot">🚦 V2X Traffic Signal v6.0 · Real GPS · 3D Visualization · Firebase Live</div>
+
+<div class="overlay" id="gpserr">
+  <h2>📵 GPS REQUIRED</h2>
+  <p>Enable location permissions for this site in your browser to report signal position.</p>
+  <button onclick="location.reload()">🔄 Retry</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+let myLat=null,myLng=null,gid=null;
+let evActive=false,cycleTimer=null,cyclePhase=0,cycleStartTime=0;
+const EVI={police:'🚔',fire:'🚒',ambulance:'🚑'};
+const EVN={police:'POLICE',fire:'FIRE ENGINE',ambulance:'AMBULANCE'};
+const CYCLE_NS=30000, CYCLE_EW=30000, CYCLE_Y=3000;
+
+// ── AUTH: any logged-in user can access signal page ──
+(async () => {
+  const ok = await requireAuth(); // no strict role restriction
+  if (!ok) return;
+  const s = getSession();
+  if (s.user) document.getElementById('logoutChip').textContent = '⏏ ' + s.user;
+  addLog('s', '🚦 Signal v6.0 · Welcome ' + (s.user || 'operator'));
+})();
+
+// ── FIREBASE CONNECTIVITY ─────────────────────────────────────
+db.ref('.info/connected').on('value',s=>{
+  const el=document.getElementById('conn');
+  el.className='sb-conn '+(s.val()?'ok':'no');
+  el.textContent=s.val()?'🟢 CONNECTED':'🔴 DISCONNECTED';
+});
+
+// ── ADMIN OVERRIDES ───────────────────────────────────────────
+db.ref('v4/signal/adminOverride').on('value',snap=>{
+  const v=snap.val();
+  if(!v||v==='normal'){startNormalCycle();return;}
+  stopNormalCycle();
+  if(v==='green') applyLights({N:'g',S:'g',E:'r',W:'r'});
+  else if(v==='red') applyLights({N:'r',S:'r',E:'r',W:'r'});
+  addLog('w','⚙️ Admin override: '+v.toUpperCase());
+});
+db.ref('v4/broadcast').on('value',snap=>{
+  const d=snap.val();
+  if(d&&d.message) addLog('w','📢 ADMIN: '+d.message);
+});
+
+// ── GPS ───────────────────────────────────────────────────────
+window.addEventListener('load',()=>{ startGPS(); startNormalCycle(); animateSceneVehicles(); });
+
+function startGPS(){
+  if(!navigator.geolocation){document.getElementById('gpserr').classList.add('show');return;}
+  setG('s','Acquiring GPS...');
+  gid=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:5000});
+}
+function onPos(p){
+  myLat=p.coords.latitude;myLng=p.coords.longitude;
+  const acc=Math.round(p.coords.accuracy);
+  setG('a',myLat.toFixed(5)+'°N  '+myLng.toFixed(5)+'°E','±'+acc+'m');
+  document.getElementById('myGps').textContent=myLat.toFixed(5)+'°N | ±'+acc+'m';
+  DB.signal.update({lat:myLat,lng:myLng,gpsReal:true,ts:getTimestamp()});
+  addLog('s','📍 GPS fixed ±'+acc+'m');
+}
+function onErr(e){
+  if(e.code===1)document.getElementById('gpserr').classList.add('show');
+  setG('e','GPS error — '+e.message);
+}
+function setG(st,info,acc){
+  document.getElementById('gdot').className='gdot '+st;
+  document.getElementById('ginfo').textContent=info||'';
+  document.getElementById('gacc').textContent=acc||'';
+}
+
+// ── EV LISTENER ───────────────────────────────────────────────
+DB.emergency.on('value',s=>{
+  const d=s.val();
+  if(!d||!d.active||myLat===null){
+    if(evActive){addLog('v','✅ EV departed — signals normal');evActive=false;}
+    document.getElementById('alarmWrap').classList.remove('show');
+    document.getElementById('evType').textContent='None';
+    document.getElementById('evDist').textContent='—';
+    document.getElementById('v2iStatus').textContent='Standby';
+    document.getElementById('v2iStatus').style.color='#446';
+    document.getElementById('cycleMode').textContent='NORMAL CYCLE';
+    document.getElementById('cycleMode').className='mode-val';
+    document.getElementById('hdrBadge').textContent='NORMAL';
+    document.getElementById('hdrBadge').style.color='';
+    document.getElementById('evArrow').classList.remove('show');
+    document.getElementById('rdGlow').classList.remove('show');
+    DB.signal.update({mode:'normal',evApproaching:false,ts:getTimestamp()});
+    if(!evActive)startNormalCycle();
+    return;
+  }
+
+  const dist=haversine(myLat,myLng,d.lat,d.lng);
+  const type=d.type||'ambulance';
+  document.getElementById('evType').textContent=(EVI[type]||'🚨')+' '+(EVN[type]||type.toUpperCase());
+  document.getElementById('evDist').textContent=dist+'m '+(dist<=RANGE_V2I?'🔴 IN RANGE':'🟢 Out of range');
+  document.getElementById('evDist').style.color=dist<=RANGE_V2I?'#f44':'#4f8';
+  document.getElementById('evHdg').textContent=Math.round(d.heading||0)+'° '+bearingToDir(d.heading||0);
+  document.getElementById('evSpd').textContent=(d.speed||0)+' km/h';
+
+  // Update EV arrow direction in 2.5D scene
+  updateEVArrow(d.heading||0, dist<=RANGE_V2I, type);
+
+  if(dist<=RANGE_V2I){
+    if(!evActive){addLog('a','🚨 V2I ACTIVATED — EV at '+dist+'m');evActive=true;}
+    stopNormalCycle();
+    setEVSignal(d.heading||0);
+    // Show alarm
+    document.getElementById('alarmWrap').classList.add('show');
+    document.getElementById('almIco').textContent=EVI[type]||'🚨';
+    document.getElementById('almMsg').textContent=(EVN[type]||'EMERGENCY')+' — CLEARING ROAD';
+    document.getElementById('almSub').textContent=dist+'m away · '+bearingToDir(d.heading||0)+' · '+d.speed+'km/h';
+    const pct=Math.max(12,(RANGE_V2I-dist)/RANGE_V2I*100);
+    document.getElementById('almFill').style.width=pct+'%';
+    document.getElementById('v2iStatus').textContent='V2I ACTIVE ✅';
+    document.getElementById('v2iStatus').style.color='#0d6';
+    document.getElementById('cycleMode').textContent='⚠️ EMERGENCY PREEMPTION';
+    document.getElementById('cycleMode').className='mode-val emergency';
+    document.getElementById('hdrBadge').textContent='🚨 EMERGENCY';
+    document.getElementById('hdrBadge').style.color='#f44';
+    document.getElementById('rdGlow').classList.add('show');
+    DB.signal.update({mode:'emergency',evApproaching:true,evType:type,evDist:dist,ts:getTimestamp()});
+  } else {
+    document.getElementById('alarmWrap').classList.remove('show');
+    document.getElementById('v2iStatus').textContent='Monitoring ('+dist+'m)';
+    document.getElementById('v2iStatus').style.color='#888';
+    document.getElementById('rdGlow').classList.remove('show');
+    if(evActive){evActive=false;}
+    startNormalCycle();
+    DB.signal.update({mode:'normal',evApproaching:false,ts:getTimestamp()});
+  }
+});
+
+// Listen for EV route information
+DB.routes.on('value', s => {
+  const d = s.val();
+  if (!d || !d.emergency || !d.emergency.active) {
+    document.getElementById('routeDisplay').classList.remove('show');
+    document.getElementById('routeActive').textContent = 'No Route';
+    ['routeTurn','routeDist','routeEta'].forEach(i => document.getElementById(i).textContent='—');
+    return;
+  }
+
+  const route = d.emergency.route;
+  if (route) {
+    document.getElementById('routeDisplay').classList.add('show');
+    document.getElementById('routeActive').textContent = '🛣️ ACTIVE';
+
+    // Display route information
+    const instructions = route.instructions || [];
+    if (instructions.length > 0) {
+      const nextTurn = instructions[0];
+      document.getElementById('routeTurn').textContent = nextTurn.text || '—';
+      document.getElementById('routeDist').textContent = nextTurn.distance ? (nextTurn.distance / 1000).toFixed(1) + ' km' : '—';
+    }
+
+    document.getElementById('routeEta').textContent = route.time ? route.time + ' min' : '—';
+
+    addLog('i', '📡 EV Route displayed: ' + route.distance + ' km, ' + route.time + ' min ETA');
+  }
+});
+
+// ── SIGNAL LOGIC ──────────────────────────────────────────────
+function setEVSignal(heading){
+  const h=((heading%360)+360)%360;
+  const nsGreen=(h<45||h>=315||(h>=135&&h<225));
+  applyLights({N:nsGreen?'g':'r',S:nsGreen?'g':'r',E:nsGreen?'r':'g',W:nsGreen?'r':'g'});
+  document.getElementById('cycleMode').textContent=nsGreen?'N/S: 🟢 GREEN':'E/W: 🟢 GREEN';
+}
+
+function startNormalCycle(){
+  if(cycleTimer||evActive)return;
+  runCycle();
+}
+function runCycle(){
+  if(evActive)return;
+  cyclePhase=(cyclePhase+1)%4;
+  cycleStartTime=Date.now();
+  if(cyclePhase===0||cyclePhase===2){
+    const ns=cyclePhase===0;
+    applyLights({N:ns?'g':'r',S:ns?'g':'r',E:ns?'r':'g',W:ns?'r':'g'});
+    const label=ns?'🟢 N/S GREEN · 🔴 E/W RED':'🟢 E/W GREEN · 🔴 N/S RED';
+    document.getElementById('cycleMode').textContent=label;
+    document.getElementById('cycleMode').className='mode-val green-mode';
+    cycleTimer=setTimeout(runCycle,ns?CYCLE_NS:CYCLE_EW);
+    // Animate cycle progress bar
+    animateCycleBar(ns?CYCLE_NS:CYCLE_EW);
+  } else {
+    applyYellow();
+    document.getElementById('cycleMode').textContent='⚠️ YELLOW PHASE';
+    document.getElementById('cycleMode').className='mode-val';
+    cycleTimer=setTimeout(runCycle,CYCLE_Y);
+    animateCycleBar(CYCLE_Y);
+  }
+}
+function animateCycleBar(dur){
+  const bar=document.getElementById('cycleProg');
+  bar.style.transition='none';bar.style.width='100%';
+  setTimeout(()=>{bar.style.transition='width '+dur+'ms linear';bar.style.width='0%';},50);
+}
+function stopNormalCycle(){if(cycleTimer){clearTimeout(cycleTimer);cycleTimer=null;}}
+
+function applyYellow(){
+  ['n','s','e','w'].forEach(d=>{
+    setLens(d+'R','y-off');setLens(d+'Y','y-on');setLens(d+'G','y-off');
+    setSumDot(d,'yellow','YELLOW');
+  });
+}
+function applyLights(st){
+  ['n','s','e','w'].forEach((d,i)=>{
+    const D=['N','S','E','W'][i];
+    const g=st[D]==='g';
+    setLens(d+'R',g?'r-off':'r-on');
+    setLens(d+'Y','y-off');
+    setLens(d+'G',g?'g-on':'g-off');
+    setSumDot(d,g?'green':'red',g?'GREEN':'RED');
+    document.getElementById('sc-'+d).classList.toggle('active',g);
+  });
+}
+function setLens(id,cls){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.className='lens '+cls;
+}
+function setSumDot(d,color,label){
+  const dot=document.getElementById('sd'+d);
+  const lbl=document.getElementById('l'+d);
+  if(dot)dot.className='sdot '+color;
+  if(lbl){lbl.textContent=label;lbl.style.color=color==='green'?'#0f0':color==='yellow'?'#ff0':'#f44';}
+}
+
+// ── 2.5D SCENE ANIMATION ─────────────────────────────────────
+function animateSceneVehicles(){
+  // Simple: vehicles slowly drift toward intersection then reset
+  const vehicles=['sv-north','sv-south','sv-east','sv-west'];
+  vehicles.forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    let prog=Math.random();
+    setInterval(()=>{
+      prog+=0.004;
+      if(prog>1)prog=0;
+      const p=prog;
+      if(id==='sv-north') el.style.top=Math.round(10+p*30)+'%';
+      if(id==='sv-south') el.style.bottom=Math.round(10+p*30)+'%';
+      if(id==='sv-east')  el.style.right=Math.round(10+p*30)+'%';
+      if(id==='sv-west')  el.style.left=Math.round(10+p*30)+'%';
+    },100);
+  });
+}
+
+function updateEVArrow(heading,inRange,type){
+  const arrow=document.getElementById('evArrow');
+  arrow.textContent=EVI[type]||'🚨';
+  if(inRange){
+    arrow.classList.add('show');
+    // Position arrow at edge of scene based on heading
+    const h=((heading%360)+360)%360;
+    let top='50%',left='50%',emoji='→';
+    if(h<45||h>=315)     {top='12%';left='50%';}  // from north
+    else if(h<135)       {top='50%';left='85%';}  // from east
+    else if(h<225)       {top='80%';left='50%';}  // from south
+    else                 {top='50%';left='15%';}  // from west
+    arrow.style.top=top;arrow.style.left=left;arrow.style.transform='translate(-50%,-50%)';
+    arrow.className='sv sv-ev ev-arrow show';
+  } else {
+    arrow.classList.remove('show');
+    arrow.className='ev-arrow';
+  }
+}
+
+// ── LOG ───────────────────────────────────────────────────────
+function addLog(t,m){
+  const b=document.getElementById('lbox'),d=document.createElement('div');
+  d.className='li '+t;d.textContent='['+getTimeStr()+'] '+m;
+  b.prepend(d);while(b.children.length>40)b.removeChild(b.lastChild);
+}
+addLog('s','🚦 Signal v6.0 ready — GPS starting');
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>V2X Connect — Choose Your Role</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#030310;--border:rgba(255,255,255,.06);--cyan:#00e5ff;--blue:#4466ff;--red:#ff3344;--green:#00dd66;--yellow:#ffaa00;--purple:#aa44ff;--text:#c8d0e8;--dim:#44556a}
+html,body{min-height:100%}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* BG */
+.bg-grid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(0,229,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.022) 1px,transparent 1px);background-size:56px 56px;animation:gs 30s linear infinite}
+@keyframes gs{to{background-position:56px 56px}}
+.bg-orb1{position:fixed;top:-20%;left:-5%;width:550px;height:550px;border-radius:50%;background:radial-gradient(circle,rgba(68,102,255,.09),transparent 70%);z-index:0;animation:d1 22s ease-in-out infinite alternate}
+.bg-orb2{position:fixed;bottom:-15%;right:-5%;width:650px;height:650px;border-radius:50%;background:radial-gradient(circle,rgba(0,229,255,.06),transparent 70%);z-index:0;animation:d2 28s ease-in-out infinite alternate}
+@keyframes d1{to{transform:translate(40px,30px)}}
+@keyframes d2{to{transform:translate(-50px,-40px)}}
+
+/* TOPBAR */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;gap:12px;padding:12px 28px;
+  background:rgba(3,3,16,.88);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);
+}
+.tb-logo{font-family:'Orbitron';font-size:.8rem;color:var(--cyan);letter-spacing:2px;display:flex;align-items:center;gap:10px}
+.tb-logo .ico{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:.9rem;box-shadow:0 0 16px rgba(0,229,255,.25)}
+.tb-logo span{font-size:.58rem;color:var(--dim)}
+.tb-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+
+/* USER CHIP WITH AVATAR */
+.user-chip{display:flex;align-items:center;gap:9px;padding:5px 14px 5px 5px;border-radius:24px;background:rgba(255,255,255,.04);border:1px solid var(--border)}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:.8rem;overflow:hidden;flex-shrink:0}
+.user-avatar img{width:100%;height:100%;object-fit:cover}
+.user-name{font-size:.7rem;font-weight:600;color:var(--cyan);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.logout-btn{padding:6px 14px;border-radius:9px;border:1px solid rgba(255,51,68,.2);background:rgba(255,51,68,.05);color:#f55;font-size:.68rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s}
+.logout-btn:hover{background:rgba(255,51,68,.14);border-color:rgba(255,51,68,.4)}
+
+/* MAIN */
+.main{position:relative;z-index:1;padding:100px 20px 60px;max-width:1020px;margin:0 auto}
+
+/* HEADER */
+.page-hdr{text-align:center;margin-bottom:52px;animation:fadeup .5s ease}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:.62rem;color:var(--cyan);font-family:'Share Tech Mono';letter-spacing:2.5px;
+  margin-bottom:16px;padding:6px 16px;border-radius:20px;
+  background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.18);
+}
+.page-hdr h1{
+  font-family:'Orbitron';font-size:clamp(1.6rem,4vw,2.6rem);font-weight:900;
+  margin-bottom:10px;
+  background:linear-gradient(135deg,#fff 40%,#88aacc);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.page-hdr p{color:var(--dim);font-size:.92rem;max-width:500px;margin:0 auto;line-height:1.7}
+@keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* RANGE STRIP */
+.range-strip{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:40px;animation:fadeup .5s .15s ease both}
+.rchip{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 18px;border-radius:12px;
+  background:rgba(255,255,255,.03);border:1px solid var(--border);
+  font-size:.75rem;font-weight:600;
+}
+.rchip .rv{font-family:'Orbitron';font-size:1rem;font-weight:900;margin-left:4px}
+
+/* ROLE CARDS */
+.role-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:40px}
+.role-card{
+  border-radius:22px;border:1.5px solid var(--border);
+  background:rgba(255,255,255,.022);backdrop-filter:blur(14px);
+  padding:28px 22px;text-align:center;cursor:pointer;
+  transition:all .3s cubic-bezier(.2,.8,.2,1);
+  position:relative;overflow:hidden;
+  animation:fadeup .5s ease both;
+}
+.role-card::after{content:'';position:absolute;inset:0;border-radius:20px;opacity:0;transition:.3s;background:linear-gradient(135deg,rgba(255,255,255,.04),transparent)}
+.role-card:hover::after{opacity:1}
+.role-card:hover{transform:translateY(-8px)}
+
+.rc-ev{border-color:rgba(255,51,68,.18)}.rc-ev:hover{border-color:rgba(255,51,68,.5);box-shadow:0 20px 60px rgba(255,51,68,.14)}
+.rc-sig{border-color:rgba(255,170,0,.18)}.rc-sig:hover{border-color:rgba(255,170,0,.5);box-shadow:0 20px 60px rgba(255,170,0,.11)}
+.rc-v1{border-color:rgba(68,102,255,.18)}.rc-v1:hover{border-color:rgba(68,102,255,.5);box-shadow:0 20px 60px rgba(68,102,255,.11)}
+.rc-v2{border-color:rgba(170,68,255,.18)}.rc-v2:hover{border-color:rgba(170,68,255,.5);box-shadow:0 20px 60px rgba(170,68,255,.11)}
+
+.role-ico{width:72px;height:72px;border-radius:20px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;transition:.3s}
+.ri-ev{background:rgba(255,51,68,.1);border:1px solid rgba(255,51,68,.18)}
+.ri-sig{background:rgba(255,170,0,.09);border:1px solid rgba(255,170,0,.16)}
+.ri-v1{background:rgba(68,102,255,.09);border:1px solid rgba(68,102,255,.16)}
+.ri-v2{background:rgba(170,68,255,.09);border:1px solid rgba(170,68,255,.16)}
+.role-card:hover .role-ico{transform:scale(1.08)}
+
+.role-card h3{font-family:'Orbitron';font-size:.82rem;letter-spacing:1px;margin-bottom:9px;color:#fff}
+.role-card p{font-size:.75rem;color:var(--dim);line-height:1.65;margin-bottom:18px}
+.role-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;font-size:.6rem;font-weight:700;letter-spacing:.8px;border:1px solid}
+.rt-ev{color:#f66;border-color:rgba(255,51,68,.28);background:rgba(255,51,68,.07)}
+.rt-sig{color:#fc8;border-color:rgba(255,170,0,.28);background:rgba(255,170,0,.07)}
+.rt-v1{color:#8af;border-color:rgba(68,102,255,.28);background:rgba(68,102,255,.07)}
+.rt-v2{color:#c8f;border-color:rgba(170,68,255,.28);background:rgba(170,68,255,.07)}
+
+/* CONNECTING PANEL */
+.connecting{display:none;text-align:center;padding:24px;font-family:'Share Tech Mono';font-size:.76rem;color:var(--cyan)}
+.spinner{width:30px;height:30px;border:3px solid rgba(0,229,255,.12);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.foot{position:relative;z-index:1;text-align:center;padding:20px;font-size:.58rem;color:#1a2233}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-orb1"></div>
+<div class="bg-orb2"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-logo">
+    <div class="ico">📡</div>
+    <div><div>V2X CONNECT</div><span>ROLE SELECTION</span></div>
+  </div>
+  <div class="tb-right">
+    <div class="user-chip">
+      <div class="user-avatar" id="userAvatar">👤</div>
+      <div class="user-name" id="userNameDisplay">...</div>
+    </div>
+    <button class="logout-btn" onclick="logoutSession()">Sign Out</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="page-hdr">
+    <div class="eyebrow">SELECT YOUR NODE</div>
+    <h1>Choose Your Role</h1>
+    <p>Pick the role for this session. Each role opens a dedicated mobile interface connected live to Firebase.</p>
+  </div>
+
+  <!-- Range strip -->
+  <div class="range-strip">
+    <div class="rchip">🟡 V2V Danger Zone <span class="rv" style="color:var(--yellow)" id="v2vRange">25m</span></div>
+    <div class="rchip">🔵 V2I Signal Zone <span class="rv" style="color:var(--cyan)" id="v2iRange">50m</span></div>
+    <div class="rchip">⚡ Update Rate <span class="rv" style="color:var(--green)">1s</span></div>
+  </div>
+
+  <!-- Role Cards -->
+  <div class="role-grid">
+    <div class="role-card rc-ev" onclick="chooseRole('ev','emergency.html')" id="card-ev" style="animation-delay:.05s">
+      <div class="role-ico ri-ev">🚨</div>
+      <h3>Emergency Vehicle</h3>
+      <p>Drive ambulance, fire engine, or police car. Broadcast live GPS and activate signal preemption.</p>
+      <span class="role-tag rt-ev">📱 MOBILE · EV DRIVER</span>
+    </div>
+    <div class="role-card rc-sig" onclick="chooseRole('signal','signal.html')" id="card-sig" style="animation-delay:.12s">
+      <div class="role-ico ri-sig">🚦</div>
+      <h3>Traffic Signal</h3>
+      <p>Manage the smart intersection. Auto-preempt signals when EV approaches within range.</p>
+      <span class="role-tag rt-sig">📱 MOBILE · INTERSECTION</span>
+    </div>
+    <div class="role-card rc-v1" onclick="chooseRole('vehicle1','vehicle1.html')" id="card-v1" style="animation-delay:.19s">
+      <div class="role-ico ri-v1">🚗</div>
+      <h3>Vehicle 1 <span style="font-size:.65rem;opacity:.5">(V2V)</span></h3>
+      <p>Civilian vehicle node. Receive emergency alerts at range and confirm yield to clear the path.</p>
+      <span class="role-tag rt-v1">📱 MOBILE · CIVILIAN V1</span>
+    </div>
+    <div class="role-card rc-v2" onclick="chooseRole('vehicle2','vehicle2.html')" id="card-v2" style="animation-delay:.26s">
+      <div class="role-ico ri-v2">🚙</div>
+      <h3>Vehicle 2 <span style="font-size:.65rem;opacity:.5">(V2V)</span></h3>
+      <p>Second civilian node. Independent proximity detection with directional yield guidance.</p>
+      <span class="role-tag rt-v2">📱 MOBILE · CIVILIAN V2</span>
+    </div>
+  </div>
+
+  <div class="connecting" id="connecting">
+    <div class="spinner"></div>
+    Connecting to Firebase node...
+  </div>
+</div>
+
+<div class="foot">V2X Connect v6.0 · Real GPS · Firebase Auth · Silk Board Junction, Bangalore</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+window.addEventListener('load', async () => {
+  const ok = await requireAuth();
+  if (!ok) return;
+  const s = getSession();
+  if (s.isAdmin) { window.location.href = 'control.html'; return; }
+  document.getElementById('userNameDisplay').textContent = s.user || '?';
+
+  // Show Google photo if available
+  if (s.photo) {
+    const av = document.getElementById('userAvatar');
+    av.innerHTML = '<img src="'+s.photo+'" alt="avatar" onerror="this.parentNode.textContent=\'👤\'">';
+  }
+});
+
+document.addEventListener('rangesUpdated', e => {
+  document.getElementById('v2vRange').textContent = e.detail.v2v + 'm';
+  document.getElementById('v2iRange').textContent = e.detail.v2i + 'm';
+});
+
+function chooseRole(role, url) {
+  const s = getSession();
+  document.querySelectorAll('.role-card').forEach(c => { c.style.opacity = '.35'; c.style.pointerEvents = 'none'; });
+  const cardId = role === 'vehicle1' ? 'v1' : role === 'vehicle2' ? 'v2' : role;
+  const card = document.getElementById('card-' + cardId);
+  if(card) card.style.opacity = '1';
+  document.getElementById('connecting').style.display = 'block';
+  sessionStorage.setItem('v2x_role', role);
+  db.ref('v4/sessions/' + role).set({ user: s.user, role, joinedAt: new Date().toISOString(), t: firebase.database.ServerValue.TIMESTAMP });
+  setTimeout(() => { window.location.href = url; }, 700);
+}
+</script>
+</body>
+</html>

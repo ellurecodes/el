@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🚙 Vehicle 2 — V2V v6.0</title>
+<meta name="description" content="V2V civilian vehicle node 2 — V2X Connect v6.0">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--ac:#aa44ff;--bg:#06040f;--card:#0d0a1e;--border:rgba(255,255,255,.06);--dim:#334}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#ccd0e8;min-height:100vh;user-select:none}
+.sbar{display:flex;align-items:center}
+.sb-conn{padding:6px 14px;flex:1;text-align:center;font-size:.65rem;font-weight:700}
+.sb-conn.ok{background:rgba(0,220,100,.1);color:#0d6}.sb-conn.no{background:rgba(255,50,50,.07);color:#f66}
+.sb-gps{display:flex;align-items:center;gap:7px;padding:6px 12px;background:rgba(255,255,255,.02);border-left:1px solid var(--border);font-size:.65rem}
+.gdot{width:8px;height:8px;border-radius:50%}
+.gdot.s{background:#fa0;animation:bl 1s infinite}.gdot.a{background:#4f8;box-shadow:0 0 6px #4f8}.gdot.e{background:#f44}
+@keyframes bl{50%{opacity:.3}}
+.hdr{padding:12px 15px 8px;text-align:center;background:linear-gradient(180deg,#06040e,#090418);border-bottom:1px solid rgba(170,68,255,.12);position:relative}
+.hdr h1{font-family:'Orbitron';font-size:1rem;color:var(--ac);letter-spacing:3px;margin-bottom:2px;text-shadow:0 0 22px rgba(170,68,255,.4)}
+.hdr p{font-size:.6rem;color:var(--dim)}
+.logout-chip{position:absolute;right:12px;top:50%;transform:translateY(-50%);padding:4px 10px;border-radius:8px;border:1px solid rgba(170,68,255,.25);background:rgba(170,68,255,.07);color:#c8f;font-size:.58rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.zone{margin:10px 12px;border-radius:18px;overflow:hidden;transition:.4s;border:2px solid}
+.zone.safe{background:rgba(0,220,100,.02);border-color:rgba(0,220,100,.14)}
+.zone.caution{background:rgba(255,170,0,.04);border-color:rgba(255,170,0,.4)}
+.zone.danger{background:rgba(255,30,30,.04);border-color:#f23;animation:dng .5s ease-in-out infinite alternate}
+@keyframes dng{to{background:rgba(255,30,30,.12);box-shadow:0 0 30px rgba(255,0,0,.16)}}
+.zone-in{padding:20px 14px;text-align:center}
+.z-ico{font-size:3rem;margin-bottom:8px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.6))}
+.z-tit{font-size:1.05rem;font-weight:800;margin-bottom:5px}
+.z-sub{font-size:.8rem;color:#778}
+.dirarr{background:rgba(0,0,0,.35);border-radius:14px;padding:14px;margin:12px 0 4px;border:2px solid rgba(255,30,30,.3);display:none}
+.darrow{font-size:4rem;line-height:1;margin:4px 0;animation:pulse .6s ease-in-out infinite alternate}
+@keyframes pulse{to{transform:scale(1.14)}}
+.darrow-t{font-family:'Orbitron';font-size:.9rem;letter-spacing:2px;font-weight:900;margin-bottom:3px}
+.darrow-s{font-size:.72rem;color:#ccc}
+.pbar-wrap{margin-top:12px}
+.pbar-lbls{display:flex;justify-content:space-between;font-size:.56rem;color:var(--dim);margin-bottom:5px}
+.pbar{height:10px;background:rgba(255,255,255,.05);border-radius:5px;overflow:hidden}
+.pbar-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#00dd66,#ffaa00,#ff3344);width:0%;transition:.8s}
+.pbar-val{text-align:center;font-family:'Share Tech Mono';font-size:.72rem;color:#ccd;margin-top:5px;font-weight:700}
+.ybtn{width:calc(100% - 24px);margin:10px 12px 0;padding:17px;border:0;border-radius:14px;font-size:.95rem;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:.5px;display:none;transition:.2s}
+.ybtn.show{display:block;background:linear-gradient(135deg,#aa1100,#ff3300);color:#fff;box-shadow:0 4px 20px rgba(255,50,0,.3);animation:ybp .7s ease-in-out infinite alternate}
+@keyframes ybp{to{transform:scale(1.02);box-shadow:0 6px 28px rgba(255,80,0,.45)}}
+.ybtn.done{display:block;background:linear-gradient(135deg,#034,#066);color:#4f8;animation:none;box-shadow:none}
+.sec{margin:10px 12px;background:var(--card);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.sech{padding:8px 14px;font-size:.5rem;letter-spacing:2.5px;color:var(--dim);font-weight:700;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.sech span:last-child{font-size:.58rem;padding:2px 8px;border-radius:8px;background:rgba(170,68,255,.1);color:#c8f;border:1px solid rgba(170,68,255,.2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.025)}
+.gc{padding:9px 13px;background:var(--card)}
+.gc .lb{font-size:.48rem;color:var(--dim);letter-spacing:2px;margin-bottom:4px}
+.gc .vl{font-size:.88rem;font-weight:700;color:#eef;font-family:'Share Tech Mono'}
+.evinfo{margin:0 12px 10px;background:var(--card);border-radius:14px;border:1px solid rgba(255,170,0,.09);padding:12px}
+.evroute{margin:0 12px 10px;background:var(--card);border-radius:14px;border:1px solid rgba(255,34,51,.15);padding:12px}
+.ei-t{font-size:.5rem;color:var(--dim);letter-spacing:2px;margin-bottom:9px;font-weight:700;display:flex;align-items:center;gap:6px}
+.ei-t::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.04)}
+.evrow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.02);font-size:.76rem}
+.evrow:last-child{border-bottom:none}
+.evrow .el{color:#446}.evrow .ev{font-weight:700;color:#ccd;font-family:'Share Tech Mono'}
+.lbox{max-height:90px;overflow-y:auto;background:rgba(0,0,0,.2);border-radius:10px;padding:8px;margin:0 12px 14px}
+.lbox::-webkit-scrollbar{width:3px}.lbox::-webkit-scrollbar-thumb{background:#1a2233;border-radius:2px}
+.li{padding:3px 8px;margin-bottom:2px;border-radius:4px;font-size:.6rem;border-left:3px solid}
+.li.s{border-color:#aa44ff;color:#c8f}.li.a{border-color:#f23;color:#f88}
+.li.v{border-color:#0d6;color:#8fa}.li.w{border-color:#fa0;color:#fc6}
+.foot{text-align:center;padding:10px;font-size:.54rem;color:#1a2233}
+.overlay{position:fixed;inset:0;background:rgba(6,4,15,.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:30px;text-align:center}
+.overlay.show{display:flex}
+.overlay h2{font-family:'Orbitron';color:var(--ac);font-size:1rem;margin-bottom:12px}
+.overlay p{color:#556;font-size:.82rem;line-height:1.6;margin-bottom:22px}
+.overlay button{padding:12px 28px;border-radius:12px;border:none;background:var(--ac);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="sbar">
+  <div class="sb-conn no" id="conn">⚪ CONNECTING...</div>
+  <div class="sb-gps">
+    <div class="gdot s" id="gdot"></div>
+    <span style="flex:1;color:var(--dim)" id="ginfo">Acquiring GPS...</span>
+    <span style="color:#4f8;font-size:.58rem" id="gacc"></span>
+  </div>
+</div>
+<div class="hdr">
+  <h1>🚙 VEHICLE 2</h1>
+  <p>V2V Node · Real GPS · Vincenty Distance · Emergency Proximity Detection</p>
+  <button class="logout-chip" id="logoutChip" onclick="logoutSession()">⏏ Sign Out</button>
+</div>
+
+<div class="zone safe" id="zone">
+  <div class="zone-in">
+    <div class="z-ico" id="zico">🚙</div>
+    <div class="z-tit" id="ztit" style="color:#0d6">Normal Driving</div>
+    <div class="z-sub" id="zsub">No emergency vehicles nearby</div>
+    <div class="dirarr" id="dirarr">
+      <div class="darrow" id="darrow"></div>
+      <div class="darrow-t" id="darrowt"></div>
+      <div class="darrow-s" id="darrows"></div>
+    </div>
+    <div class="pbar-wrap">
+      <div class="pbar-lbls"><span>Far &gt;150m</span><span id="dlbl">—</span><span>⚠️ 25m</span></div>
+      <div class="pbar"><div class="pbar-fill" id="dfill"></div></div>
+      <div class="pbar-val" id="pbarVal">Monitoring...</div>
+    </div>
+  </div>
+</div>
+
+<button class="ybtn" id="ybtn" onclick="doYield()">⚠️ TAP TO YIELD — PULL ASIDE NOW!</button>
+
+<div class="sec">
+  <div class="sech"><span>📍 MY GPS</span><span id="gmode">Searching</span></div>
+  <div class="grid2">
+    <div class="gc"><div class="lb">LATITUDE</div><div class="vl" id="dlat">—</div></div>
+    <div class="gc"><div class="lb">LONGITUDE</div><div class="vl" id="dlng">—</div></div>
+    <div class="gc"><div class="lb">ACCURACY</div><div class="vl" id="dacc">—</div></div>
+    <div class="gc"><div class="lb">DIST TO EV</div><div class="vl" id="dev">—</div></div>
+  </div>
+</div>
+
+<div class="evinfo">
+  <div class="ei-t">📡 EMERGENCY VEHICLE DATA</div>
+  <div class="evrow"><span class="el">EV Active</span><span class="ev" id="evact">No EV</span></div>
+  <div class="evrow"><span class="el">Distance</span><span class="ev" id="evdist">—</span></div>
+  <div class="evrow"><span class="el">Type</span><span class="ev" id="evtype">—</span></div>
+  <div class="evrow"><span class="el">Heading</span><span class="ev" id="evhdg">—</span></div>
+  <div class="evrow"><span class="el">Yield Side</span><span class="ev" id="evside">—</span></div>
+</div>
+
+<div class="evroute">
+  <div class="ei-t">🚨 EV ROUTE INFORMATION</div>
+  <div class="evrow"><span class="el">Route Active</span><span class="ev" id="routeact">No Route</span></div>
+  <div class="evrow"><span class="el">Next Turn</span><span class="ev" id="routeturn">—</span></div>
+  <div class="evrow"><span class="el">Distance to Turn</span><span class="ev" id="routedist">—</span></div>
+  <div class="evrow"><span class="el">ETA</span><span class="ev" id="routeeta">—</span></div>
+</div>
+
+<div style="padding:0 12px 5px;font-size:.5rem;color:var(--dim);letter-spacing:2px;font-weight:700">📜 V2V LOG</div>
+<div class="lbox" id="lbox"></div>
+<div class="foot">🚙 Vehicle 2 v5.0 · Real GPS · V2V Detection</div>
+
+<div class="overlay" id="gpserr">
+  <h2>📵 GPS REQUIRED</h2>
+  <p>Enable location permissions. This node needs real GPS to work.</p>
+  <button onclick="location.reload()">🔄 Retry</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+const VID='vehicle2';
+let myLat=null,myLng=null,myAcc=0;
+let yielded=false,hasAlert=false,inDanger=false,lastDist=9999;
+let aCtx;
+
+// ── AUTH: any logged-in user can use vehicle pages ──
+(async () => {
+  const ok = await requireAuth(); // no strict role check
+  if (!ok) return;
+  const s = getSession();
+  if (s.user) document.getElementById('logoutChip').textContent = '⏏ ' + s.user;
+})();
+
+db.ref('v4/broadcast').on('value',snap=>{const d=snap.val();if(d&&d.message)addLog('w','📢 ADMIN: '+d.message);});
+db.ref('.info/connected').on('value',s=>{
+  const el=document.getElementById('conn');
+  el.className='sb-conn '+(s.val()?'ok':'no');
+  el.textContent=s.val()?'🟢 CONNECTED':'🔴 DISCONNECTED';
+});
+
+window.addEventListener('load',()=>{startGPS();});
+
+function startGPS(){
+  if(!navigator.geolocation){document.getElementById('gpserr').classList.add('show');return;}
+  setG('s','Acquiring GPS...');
+  navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:5000});
+}
+function onPos(p){
+  myLat=p.coords.latitude;myLng=p.coords.longitude;myAcc=Math.round(p.coords.accuracy);
+  setG('a',myLat.toFixed(5)+'°N  '+myLng.toFixed(5)+'°E','±'+myAcc+'m');
+  document.getElementById('gmode').textContent='🟢 Real GPS';
+  document.getElementById('dlat').textContent=myLat.toFixed(6)+'°';
+  document.getElementById('dlng').textContent=myLng.toFixed(6)+'°';
+  document.getElementById('dacc').textContent='±'+myAcc+'m';
+  sendPos();
+}
+function onErr(e){if(e.code===1)document.getElementById('gpserr').classList.add('show');setG('e','GPS error: '+e.message);addLog('w','GPS: '+e.message);}
+function setG(st,info,acc){document.getElementById('gdot').className='gdot '+st;document.getElementById('ginfo').textContent=info||'';document.getElementById('gacc').textContent=acc||'';}
+function sendPos(){
+  if(myLat===null)return;
+  DB[VID].set({lat:myLat,lng:myLng,accuracy:myAcc,yield:yielded,alert:inDanger,timestamp:getTimestamp(),t:firebase.database.ServerValue.TIMESTAMP});
+}
+
+DB.emergency.on('value',s=>{
+  const d=s.val();
+  if(!d||!d.active){
+    if(hasAlert)addLog('s','✅ EV gone — safe to resume');
+    document.getElementById('evact').textContent='No EV';
+    ['evdist','evtype','evhdg','evside','dev'].forEach(i=>document.getElementById(i).textContent='—');
+    resetSafe();return;
+  }
+  if(myLat===null)return;
+  const dist=haversine(myLat,myLng,d.lat,d.lng);
+  const h=d.heading||0,type=d.type||'ambulance';
+  const ic=type==='police'?'🚔':type==='fire'?'🚒':'🚑';
+  const fp=Math.max(0,Math.min(100,(1-dist/200)*100));
+  document.getElementById('dfill').style.width=fp+'%';
+  document.getElementById('dlbl').textContent=dist+'m';
+  document.getElementById('pbarVal').textContent=dist+'m away';
+  document.getElementById('dev').textContent=dist+'m';
+  document.getElementById('evact').textContent='🔴 ACTIVE';
+  document.getElementById('evdist').textContent=dist+'m '+(dist<=RANGE_V2V?'🔴 DANGER':dist<=RANGE_V2I?'🟡 NEAR':'🟢 Safe');
+  document.getElementById('evdist').style.color=dist<=RANGE_V2V?'#f44':dist<=RANGE_V2I?'#fa0':'#4f8';
+  document.getElementById('evtype').textContent=ic+' '+type.toUpperCase();
+  document.getElementById('evhdg').textContent=Math.round(h)+'° '+bearingToDir(h);
+
+  if(dist<=RANGE_V2V){
+    inDanger=true;
+    const side=getYieldSide(d.lat,d.lng,h,myLat,myLng);
+    document.getElementById('evside').textContent=side==='LEFT'?'⬅️ MOVE LEFT':'MOVE RIGHT ➡️';
+    setDanger(dist,side,ic);
+    if(dist<lastDist-5){beep(900,.12);lastDist=dist;}
+    sendPos();
+  } else if(dist<=RANGE_V2I){
+    inDanger=false;document.getElementById('evside').textContent='—';
+    setCaution(dist,ic);
+    if(yielded){yielded=false;document.getElementById('ybtn').className='ybtn';}
+    lastDist=9999;sendPos();
+  } else {
+    inDanger=false;document.getElementById('evside').textContent='—';
+    resetSafe();lastDist=9999;
+  }
+});
+// Listen for EV route information
+DB.routes.on('value', s => {
+  const d = s.val();
+  if (!d || !d.emergency || !d.emergency.active) {
+    document.getElementById('routeact').textContent = 'No Route';
+    ['routeturn','routedist','routeeta'].forEach(i => document.getElementById(i).textContent='—');
+    return;
+  }
+
+  const route = d.emergency.route;
+  if (route && myLat !== null) {
+    document.getElementById('routeact').textContent = '🛣️ ACTIVE';
+
+    // Calculate next turn and distance
+    const instructions = route.instructions || [];
+    if (instructions.length > 0) {
+      const nextTurn = instructions[0];
+      document.getElementById('routeturn').textContent = nextTurn.text || '—';
+      document.getElementById('routedist').textContent = nextTurn.distance ? (nextTurn.distance / 1000).toFixed(1) + ' km' : '—';
+    }
+
+    document.getElementById('routeeta').textContent = route.time ? route.time + ' min' : '—';
+
+    addLog('i', '📡 EV Route received: ' + route.distance + ' km, ' + route.time + ' min ETA');
+  }
+});
+function setDanger(dist,side,ico){
+  document.getElementById('zone').className='zone danger';
+  document.getElementById('zico').textContent=ico;
+  document.getElementById('ztit').textContent='🚨 EMERGENCY VEHICLE!';
+  document.getElementById('ztit').style.color='#f44';
+  document.getElementById('zsub').textContent='YIELD IMMEDIATELY — '+dist+'m away!';
+  const da=document.getElementById('dirarr');da.style.display='block';
+  const l=side==='LEFT';
+  document.getElementById('darrow').textContent=l?'⬅️':'➡️';
+  document.getElementById('darrowt').textContent=l?'← PULL LEFT NOW':'PULL RIGHT NOW →';
+  document.getElementById('darrowt').style.color='#f44';
+  document.getElementById('darrows').textContent='Clear the lane — move to the '+side.toLowerCase();
+  if(!yielded)document.getElementById('ybtn').className='ybtn show';
+  if(!hasAlert){addLog('a','🚨 EV at '+dist+'m — MOVE '+side);logEvent('v2v','V2 alert',{dist,side});hasAlert=true;}
+}
+function setCaution(dist,ico){
+  document.getElementById('zone').className='zone caution';
+  document.getElementById('zico').textContent=ico;
+  document.getElementById('ztit').textContent='⚠️ Emergency Approaching';
+  document.getElementById('ztit').style.color='#fa0';
+  document.getElementById('zsub').textContent='Be ready to yield — '+dist+'m away';
+  document.getElementById('dirarr').style.display='none';
+  if(!hasAlert){addLog('w','⚠️ EV approaching — '+dist+'m');hasAlert=true;}
+}
+function resetSafe(){
+  document.getElementById('zone').className='zone safe';
+  document.getElementById('zico').textContent='🚙';
+  document.getElementById('ztit').textContent='Normal Driving';
+  document.getElementById('ztit').style.color='#0d6';
+  document.getElementById('zsub').textContent='No emergency vehicles nearby';
+  document.getElementById('dirarr').style.display='none';
+  document.getElementById('dfill').style.width='0';
+  document.getElementById('dlbl').textContent='—';
+  document.getElementById('pbarVal').textContent='Monitoring...';
+  document.getElementById('ybtn').className='ybtn';
+  yielded=false;hasAlert=false;inDanger=false;lastDist=9999;sendPos();
+}
+function doYield(){
+  yielded=true;
+  document.getElementById('ybtn').className='ybtn done';
+  document.getElementById('ybtn').textContent='✅ YIELDED — Moved Aside!';
+  logEvent('v2v','V2 yielded',{lat:myLat,lng:myLng});
+  sendPos();beep(600,.25);addLog('v','✅ Yielded!');
+}
+function beep(f,d){
+  try{if(!aCtx)aCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=aCtx.createOscillator(),g=aCtx.createGain();
+    o.frequency.value=f;g.gain.value=.07;
+    g.gain.exponentialRampToValueAtTime(.001,aCtx.currentTime+d);
+    o.connect(g);g.connect(aCtx.destination);o.start();o.stop(aCtx.currentTime+d);}catch(e){}
+}
+function addLog(t,m){const b=document.getElementById('lbox'),d=document.createElement('div');d.className='li '+t;d.textContent='['+getTimeStr()+'] '+m;b.prepend(d);while(b.children.length>40)b.removeChild(b.lastChild);}
+setInterval(sendPos,3000);
+addLog('s','🚙 Vehicle 2 v6.0 — GPS starting');
+</script>
+</body>
+</html>

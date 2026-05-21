@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🚨 Emergency Vehicle — V2X v6</title>
+<meta name="description" content="Emergency Vehicle node — V2X Connect v6.0 with Kalman GPS smoothing">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#05020e;--card:#0f0b1e;--border:rgba(255,255,255,.07);--red:#ff3344;--orange:#ff6600;--blue:#4466ff;--green:#00dd66;--yellow:#ffaa00;--dim:#445}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:#d0c8e8;min-height:100vh;user-select:none;overflow-x:hidden}
+
+/* SIREN STRIP */
+.siren{height:5px;background:repeating-linear-gradient(90deg,#f02 0,#f02 50%,#002aff 50%,#002aff 100%);background-size:28px 5px;opacity:0;transition:.3s}
+.siren.on{opacity:1;animation:ss .16s linear infinite}
+@keyframes ss{to{background-position:28px 0}}
+
+/* STATUS BAR */
+.sbar{display:flex;align-items:center}
+.sb-conn{padding:6px 14px;flex:1;text-align:center;font-size:.65rem;font-weight:700}
+.sb-conn.ok{background:rgba(0,220,100,.1);color:#0d6}.sb-conn.no{background:rgba(255,34,51,.07);color:#f23}
+.sb-gps{display:flex;align-items:center;gap:7px;padding:6px 12px;background:rgba(255,255,255,.02);border-left:1px solid var(--border);font-size:.65rem}
+.gdot{width:8px;height:8px;border-radius:50%}
+.gdot.s{background:#fa0;animation:bl 1s infinite}.gdot.a{background:#0d6;box-shadow:0 0 6px #0d6}.gdot.e{background:#f23}
+@keyframes bl{50%{opacity:.2}}
+
+/* HEADER */
+.hdr{padding:14px 16px 12px;text-align:center;background:linear-gradient(180deg,rgba(30,4,8,.9),rgba(8,4,26,.9));border-bottom:1px solid rgba(255,51,68,.15);position:relative}
+.hdr h1{font-family:'Orbitron';font-size:1rem;letter-spacing:3px;color:var(--red);margin-bottom:2px;text-shadow:0 0 30px rgba(255,51,68,.5)}
+.hdr p{font-size:.6rem;color:var(--dim)}
+.hdr-user{position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+.logout-chip{padding:4px 10px;border-radius:8px;border:1px solid rgba(255,51,68,.25);background:rgba(255,51,68,.07);color:#f88;font-size:.58rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:.2s}
+.logout-chip:hover{background:rgba(255,51,68,.18)}
+
+/* ACCURACY BADGE */
+.acc-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:.58rem;font-family:'Share Tech Mono';margin:4px auto;background:rgba(0,229,255,.06);border:1px solid rgba(0,229,255,.15);color:#00e5ff}
+.acc-badge .kf-dot{width:6px;height:6px;border-radius:50%;background:#00e5ff;animation:bl 1s infinite}
+
+/* TYPE SELECTOR */
+.type-row{display:flex;gap:8px;padding:12px}
+.tbtn{flex:1;padding:12px 4px;border-radius:14px;border:2px solid rgba(255,255,255,.06);background:rgba(0,0,0,.3);color:#445;font-size:.75rem;font-weight:700;cursor:pointer;text-align:center;transition:all .2s;font-family:'Inter',sans-serif}
+.tbtn span{display:block;font-size:1.5rem;margin-bottom:3px}
+.tbtn.amb.on{border-color:var(--red);color:#f88;background:rgba(255,51,68,.12);box-shadow:0 0 18px rgba(255,51,68,.22)}
+.tbtn.fire.on{border-color:var(--orange);color:#faa;background:rgba(255,100,0,.12);box-shadow:0 0 18px rgba(255,100,0,.22)}
+.tbtn.police.on{border-color:#4488ff;color:#8af;background:rgba(68,136,255,.12);box-shadow:0 0 18px rgba(68,136,255,.22)}
+
+/* BIG ACTIVATE BUTTON */
+.btn-wrap{display:flex;justify-content:center;align-items:center;padding:20px 16px 14px}
+.abtn{width:172px;height:172px;border-radius:50%;border:5px solid var(--red);background:radial-gradient(circle at 38% 30%,#c11020,#5a0010 70%);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 45px rgba(255,0,0,.2),inset 0 4px 12px rgba(255,255,255,.07);transition:all .25s;position:relative;overflow:hidden}
+.abtn::before{content:'';position:absolute;top:10%;left:20%;width:28%;height:14%;background:linear-gradient(180deg,rgba(255,255,255,.24),transparent);border-radius:50%}
+.abtn:active{transform:scale(.93)}
+.abtn.on{animation:aglw 1s ease-in-out infinite;border-color:var(--orange)}
+@keyframes aglw{0%,100%{box-shadow:0 0 35px rgba(255,30,0,.25)}50%{box-shadow:0 0 85px rgba(255,100,0,.75),0 0 130px rgba(255,0,0,.35)}}
+.abtn-ico{font-size:3rem;margin-bottom:4px}
+.abtn-lbl{font-family:'Orbitron';font-size:.85rem;font-weight:900;color:#fff;letter-spacing:2px}
+.abtn-sub{font-size:.5rem;color:rgba(255,255,255,.4);margin-top:3px}
+
+/* STATUS PILLS */
+.pills{display:flex;gap:6px;padding:0 12px 12px;flex-wrap:wrap}
+.pill{padding:5px 11px;border-radius:20px;font-size:.6rem;font-weight:700;letter-spacing:.8px;border:1px solid}
+.pill-mode{border-color:rgba(255,51,68,.3);color:#f66;background:rgba(255,51,68,.07)}
+.pill-mode.on{border-color:var(--red);color:var(--red);background:rgba(255,51,68,.16)}
+.pill-sig{border-color:rgba(0,220,100,.2);color:#4f8;background:rgba(0,220,100,.05)}
+.pill-sig.on{border-color:var(--green);color:#0f9;background:rgba(0,220,100,.16)}
+.pill-v2v{border-color:rgba(255,170,0,.2);color:#fa4;background:rgba(255,170,0,.05)}
+.pill-v2v.on{border-color:var(--yellow);color:#fc4;background:rgba(255,170,0,.15)}
+.pill-kf{border-color:rgba(0,229,255,.2);color:#0ef;background:rgba(0,229,255,.06)}
+.pill-kf.on{border-color:#00e5ff;color:#00e5ff;background:rgba(0,229,255,.14)}
+
+/* DATA SECTIONS */
+.sec{margin:0 12px 10px;background:var(--card);border-radius:16px;border:1px solid var(--border);overflow:hidden}
+.sech{padding:9px 14px;font-size:.5rem;letter-spacing:2.5px;color:var(--dim);font-weight:700;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.sech .badge{font-size:.55rem;padding:3px 9px;border-radius:10px;background:rgba(0,220,100,.1);color:#4f8;border:1px solid rgba(0,220,100,.2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(255,255,255,.025)}
+.gc{padding:10px 13px;background:var(--card)}
+.gc .lb{font-size:.48rem;color:var(--dim);letter-spacing:2px;margin-bottom:4px}
+.gc .vl{font-size:.88rem;font-weight:700;color:#eef;font-family:'Share Tech Mono'}
+.gc .vl.good{color:#4f8}.gc .vl.warn{color:#fa0}.gc .vl.bad{color:#f44}
+
+/* SIGNAL STATUS */
+.sig-status{display:flex;align-items:center;gap:10px;padding:8px 14px;background:rgba(0,220,100,.04);border-top:1px solid var(--border)}
+.sig-light{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.sig-light.green{background:#00ff44;box-shadow:0 0 10px #00ff44}.sig-light.red{background:#ff2200;box-shadow:0 0 10px #ff2200}.sig-light.idle{background:#334}
+.sig-txt{font-size:.68rem;font-family:'Share Tech Mono';font-weight:700}
+
+.lbox{max-height:90px;overflow-y:auto;background:rgba(0,0,0,.2);border-radius:10px;padding:8px;margin:0 12px 12px}
+.lbox::-webkit-scrollbar{width:3px}.lbox::-webkit-scrollbar-thumb{background:#1a2233;border-radius:2px}
+.li{padding:3px 8px;margin-bottom:2px;border-radius:4px;font-size:.6rem;border-left:3px solid}
+.li.s{border-color:#4466ff;color:#8af}.li.a{border-color:#f23;color:#f88}.li.v{border-color:#0d6;color:#8fa}.li.w{border-color:#fa0;color:#fc6}
+
+.foot{text-align:center;padding:10px;font-size:.54rem;color:#1a2233;font-family:'Share Tech Mono'}
+.overlay{position:fixed;inset:0;background:rgba(5,2,14,.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:30px;text-align:center}
+.overlay.show{display:flex}
+.overlay h2{font-family:'Orbitron';color:var(--red);font-size:1rem;margin-bottom:12px}
+.overlay p{color:#556;font-size:.82rem;line-height:1.6;margin-bottom:22px}
+.overlay button{padding:12px 28px;border-radius:12px;border:none;background:var(--red);color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="siren" id="siren"></div>
+
+<div class="sbar">
+  <div class="sb-conn no" id="conn">⚪ CONNECTING...</div>
+  <div class="sb-gps">
+    <div class="gdot s" id="gdot"></div>
+    <span style="flex:1;color:var(--dim)" id="ginfo">Acquiring GPS...</span>
+    <span style="color:#0ef;font-size:.58rem" id="gacc"></span>
+  </div>
+</div>
+
+<div class="hdr">
+  <h1>🚨 EMERGENCY VEHICLE</h1>
+  <p id="hdrSub">V2X v6.0 · Kalman GPS · Vincenty Distance</p>
+  <div class="hdr-user">
+    <button class="logout-chip" id="logoutChip" onclick="logoutSession()">⏏ Sign Out</button>
+  </div>
+</div>
+
+<div style="text-align:center;padding:4px">
+  <span class="acc-badge" id="kfBadge"><span class="kf-dot"></span>KALMAN FILTER ACTIVE</span>
+</div>
+
+<!-- Vehicle type selector -->
+<div class="type-row">
+  <button class="tbtn amb on" id="tb-amb" onclick="setType('ambulance')"><span>🚑</span>AMBULANCE</button>
+  <button class="tbtn fire" id="tb-fire" onclick="setType('fire')"><span>🚒</span>FIRE</button>
+  <button class="tbtn police" id="tb-police" onclick="setType('police')"><span>🚔</span>POLICE</button>
+</div>
+
+<!-- BIG ACTIVATE BUTTON -->
+<div class="btn-wrap">
+  <button class="abtn" id="abtn" onclick="toggleActivate()">
+    <div class="abtn-ico" id="abtnIco">🚨</div>
+    <div class="abtn-lbl" id="abtnLbl">ACTIVATE</div>
+    <div class="abtn-sub" id="abtnSub">Tap to broadcast</div>
+  </button>
+</div>
+
+<!-- Pills -->
+<div class="pills">
+  <span class="pill pill-mode" id="pMode">🚨 STANDBY</span>
+  <span class="pill pill-sig" id="pSig">🚦 Signal: Normal</span>
+  <span class="pill pill-v2v" id="pV2V">🚗 V2V: 0 nearby</span>
+  <span class="pill pill-kf on" id="pKF">🔬 Kalman ON</span>
+</div>
+
+<!-- GPS Data -->
+<div class="sec">
+  <div class="sech"><span>📍 GPS (KALMAN FILTERED)</span><span class="badge" id="gpsMode">Searching</span></div>
+  <div class="grid2">
+    <div class="gc"><div class="lb">LATITUDE (SMOOTHED)</div><div class="vl" id="dlat">—</div></div>
+    <div class="gc"><div class="lb">LONGITUDE (SMOOTHED)</div><div class="vl" id="dlng">—</div></div>
+    <div class="gc"><div class="lb">RAW ACCURACY</div><div class="vl" id="dacc">—</div></div>
+    <div class="gc"><div class="lb">SPEED</div><div class="vl" id="dspd">—</div></div>
+    <div class="gc"><div class="lb">HEADING</div><div class="vl" id="dhdg">—</div></div>
+    <div class="gc"><div class="lb">GPS FIXES</div><div class="vl" id="dfixes">0</div></div>
+  </div>
+</div>
+
+<!-- Signal Status -->
+<div class="sec">
+  <div class="sech"><span>🚦 SIGNAL STATUS</span></div>
+  <div class="sig-status">
+    <div class="sig-light idle" id="sigLight"></div>
+    <div class="sig-txt" id="sigTxt">Signal node not connected</div>
+  </div>
+  <div class="grid2">
+    <div class="gc"><div class="lb">DIST TO SIGNAL</div><div class="vl" id="dSig">—</div></div>
+    <div class="gc"><div class="lb">V2I STATUS</div><div class="vl" id="v2iStatus">—</div></div>
+  </div>
+</div>
+
+<!-- Log -->
+<div style="padding:0 12px 5px;font-size:.5rem;color:var(--dim);letter-spacing:2px;font-weight:700">📜 EV LOG</div>
+<div class="lbox" id="lbox"></div>
+<div class="foot">🚨 Emergency Vehicle v6.0 · Kalman GPS · Vincenty Distance · Firebase Auth</div>
+
+<div class="overlay" id="gpserr">
+  <h2>📵 GPS REQUIRED</h2>
+  <p>Enable location permissions. This node transmits <strong>real GPS coordinates</strong> to Firebase for all other nodes to receive from anywhere.</p>
+  <button onclick="location.reload()">🔄 Retry</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script>
+// ── AUTH GUARD ────────────────────────────────────────────────
+(async () => {
+  const ok = await requireAuth(['ev']);
+  if (!ok) return;
+  const s = getSession();
+  document.getElementById('logoutChip').textContent = '⏏ ' + (s.user || 'Sign Out');
+  addLog('s', '🚨 EV v6.0 · Kalman|Vincenty · Hello ' + (s.user || 'driver'));
+})();
+
+// ── STATE ─────────────────────────────────────────────────────
+let active = false, evType = 'ambulance';
+let prevLat = null, prevLng = null, prevTs = null;
+let gpsFixCount = 0, aCtx;
+let sigLat = null, sigLng = null;
+
+// ── GPS ───────────────────────────────────────────────────────
+function startGPS() {
+  if (!navigator.geolocation) { document.getElementById('gpserr').classList.add('show'); return; }
+  setG('s', 'Acquiring GPS...');
+  navigator.geolocation.watchPosition(onPos, onErr, {
+    enableHighAccuracy: true, maximumAge: 0, timeout: 8000
+  });
+}
+
+function onPos(p) {
+  gpsFixCount++;
+  document.getElementById('dfixes').textContent = gpsFixCount;
+
+  const rawLat = p.coords.latitude;
+  const rawLng = p.coords.longitude;
+  const acc    = Math.round(p.coords.accuracy);
+  const ts     = p.timestamp;
+
+  // Apply Kalman filter (exported from firebase-config.js)
+  const kLat = kalmanLat.filter(rawLat);
+  const kLng = kalmanLng.filter(rawLng);
+
+  // Compute speed from successive fixes (more accurate than coords.speed)
+  let speed = 0, heading = p.coords.heading || 0;
+  if (prevLat !== null && ts - prevTs > 200) {
+    const dist = haversine(prevLat, prevLng, kLat, kLng);
+    const dtSec = (ts - prevTs) / 1000;
+    speed = Math.round((dist / dtSec) * 3.6); // m/s → km/h
+    if (dist > 0.5) heading = getBearing(prevLat, prevLng, kLat, kLng);
+  }
+  prevLat = kLat; prevLng = kLng; prevTs = ts;
+
+  // Accuracy color
+  const accClass = acc < 10 ? 'good' : acc < 25 ? 'warn' : 'bad';
+  setG('a', kLat.toFixed(6) + '°N  ' + kLng.toFixed(6) + '°E', '±' + acc + 'm (Kalman)');
+  document.getElementById('gpsMode').textContent = '🟢 Kalman GPS';
+  document.getElementById('dlat').textContent = kLat.toFixed(7) + '°';
+  document.getElementById('dlng').textContent = kLng.toFixed(7) + '°';
+
+  const accEl = document.getElementById('dacc');
+  accEl.textContent = '±' + acc + 'm';
+  accEl.className = 'vl ' + accClass;
+  document.getElementById('dspd').textContent = speed + ' km/h';
+  document.getElementById('dhdg').textContent = Math.round(heading) + '° ' + bearingToDir(heading);
+
+  // Update signal distance
+  if (sigLat !== null) {
+    const ds = haversine(kLat, kLng, sigLat.lat, sigLat.lng);
+    document.getElementById('dSig').textContent = ds + 'm';
+    const v2iEl = document.getElementById('v2iStatus');
+    if (ds <= RANGE_V2I) {
+      v2iEl.textContent = '🟢 IN ZONE'; v2iEl.className = 'vl good';
+    } else {
+      v2iEl.textContent = ds + 'm away'; v2iEl.className = 'vl';
+    }
+  }
+
+  if (active) sendPos(kLat, kLng, acc, speed, heading);
+}
+
+function onErr(e) {
+  if (e.code === 1) document.getElementById('gpserr').classList.add('show');
+  setG('e', 'GPS error: ' + e.message);
+  addLog('w', 'GPS: ' + e.message);
+}
+function setG(st, info, acc) {
+  document.getElementById('gdot').className = 'gdot ' + st;
+  document.getElementById('ginfo').textContent = info || '';
+  document.getElementById('gacc').textContent = acc || '';
+}
+
+// ── ACTIVATE ──────────────────────────────────────────────────
+function toggleActivate() {
+  active = !active;
+  const btn  = document.getElementById('abtn');
+  const ico  = document.getElementById('abtnIco');
+  const lbl  = document.getElementById('abtnLbl');
+  const sub  = document.getElementById('abtnSub');
+  const siren= document.getElementById('siren');
+  const pMode= document.getElementById('pMode');
+
+  if (active) {
+    btn.classList.add('on');
+    ico.textContent = evType === 'police' ? '🚔' : evType === 'fire' ? '🚒' : '🚑';
+    lbl.textContent = 'BROADCASTING';
+    sub.textContent = 'Tap to deactivate';
+    siren.classList.add('on');
+    pMode.textContent = '🔴 ACTIVE'; pMode.classList.add('on');
+    addLog('a', '🚨 EV ACTIVATED · ' + evType.toUpperCase());
+    logEvent('alert', 'Emergency vehicle activated', { type: evType });
+    beep(880, 0.15); beep(1100, 0.1);
+  } else {
+    btn.classList.remove('on');
+    ico.textContent = '🚨';
+    lbl.textContent = 'ACTIVATE';
+    sub.textContent = 'Tap to broadcast';
+    siren.classList.remove('on');
+    pMode.textContent = '🚨 STANDBY'; pMode.classList.remove('on');
+    DB.emergency.remove();
+    addLog('s', '✅ EV deactivated');
+    logEvent('done', 'Emergency vehicle deactivated');
+  }
+}
+
+function sendPos(lat, lng, acc, speed, heading) {
+  const routeEntry = { lat, lng, ts: Date.now() };
+  DB.emergency.set({
+    active: true, type: evType,
+    lat, lng, accuracy: acc, speed, heading,
+    rawAccuracy: acc,
+    kalmanFiltered: true,
+    timestamp: getTimestamp(),
+    t: firebase.database.ServerValue.TIMESTAMP
+  });
+  // Append to route history (last 60 pts)
+  db.ref('v4/emergency/routeHistory').push(routeEntry).then(() => {
+    db.ref('v4/emergency/routeHistory').once('value', snap => {
+      const d = snap.val();
+      if (d && Object.keys(d).length > 60) {
+        const oldest = Object.keys(d)[0];
+        db.ref('v4/emergency/routeHistory/' + oldest).remove();
+      }
+    });
+  });
+}
+
+function setType(t) {
+  evType = t;
+  ['amb','fire','police'].forEach(k => {
+    const el = document.getElementById('tb-'+k);
+    el.className = 'tbtn ' + k + (k === t.replace('ambulance','amb').replace('police','police') ? ' on' : '');
+  });
+  // fix the class name mapping
+  document.getElementById('tb-amb').className   = 'tbtn amb'    + (t==='ambulance'?' on':'');
+  document.getElementById('tb-fire').className  = 'tbtn fire'   + (t==='fire'?' on':'');
+  document.getElementById('tb-police').className= 'tbtn police' + (t==='police'?' on':'');
+  if (active) {
+    document.getElementById('abtnIco').textContent = t==='police'?'🚔':t==='fire'?'🚒':'🚑';
+  }
+}
+
+// ── SIGNAL LISTENER ───────────────────────────────────────────
+DB.signal.on('value', s => {
+  const d = s.val();
+  if (!d || !d.lat) { sigLat = null; return; }
+  sigLat = { lat: d.lat, lng: d.lng };
+  const evNear = d.mode === 'emergency';
+  const light = document.getElementById('sigLight');
+  const txt   = document.getElementById('sigTxt');
+  light.className = 'sig-light ' + (evNear ? 'green' : 'red');
+  txt.textContent = evNear ? '🟢 PREEMPTED — Green for EV' : '🔴 Normal cycle';
+  document.getElementById('pSig').textContent = evNear ? '🚦 Signal: GREEN' : '🚦 Signal: Normal';
+  document.getElementById('pSig').classList.toggle('on', evNear);
+});
+
+// ── FIREBASE LISTENERS ────────────────────────────────────────
+db.ref('.info/connected').on('value', s => {
+  const el = document.getElementById('conn');
+  el.className = 'sb-conn ' + (s.val() ? 'ok' : 'no');
+  el.textContent = s.val() ? '🟢 CONNECTED TO FIREBASE' : '🔴 DISCONNECTED';
+});
+db.ref('v4/broadcast').on('value', snap => {
+  const d = snap.val();
+  if (d && d.message) addLog('w', '📢 ADMIN: ' + d.message);
+});
+
+// ── AUDIO ─────────────────────────────────────────────────────
+function beep(f, d) {
+  try {
+    if (!aCtx) aCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const o = aCtx.createOscillator(), g = aCtx.createGain();
+    o.frequency.value = f; g.gain.value = .08;
+    g.gain.exponentialRampToValueAtTime(.001, aCtx.currentTime + d);
+    o.connect(g); g.connect(aCtx.destination);
+    o.start(); o.stop(aCtx.currentTime + d);
+  } catch(e) {}
+}
+
+function addLog(t, m) {
+  const b = document.getElementById('lbox');
+  const d = document.createElement('div');
+  d.className = 'li ' + t;
+  d.textContent = '[' + getTimeStr() + '] ' + m;
+  b.prepend(d);
+  while (b.children.length > 50) b.removeChild(b.lastChild);
+}
+
+window.addEventListener('load', startGPS);
+</script>
+</body>
+</html>
