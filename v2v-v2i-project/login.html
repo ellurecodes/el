@@ -1,230 +1,562 @@
 <!DOCTYPE html>
-<!-- V2X Connect v6.0 | login.html | Fixed: race condition, double-call -->
+<!-- Syntrix V2X — login.html | Phase 2 | Neon Citadel Design -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>V2X Connect — Sign In</title>
-<meta name="description" content="Secure login for V2X Emergency Vehicle Clearance System v6.0">
+<title>Syntrix — Secure Login</title>
+<meta name="description" content="Secure access portal for Syntrix Traffic Control and Emergency Infrastructure.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://www.gstatic.com">
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#010107;--border:rgba(255,255,255,.07);--cyan:#00e5ff;--blue:#4466ff;--red:#ff3344;--green:#00dd66;--yellow:#ffaa00;--purple:#aa44ff;--text:#c8d8f0;--dim:#44556a}
+:root{
+  --bg:#0d1518;
+  --surface:rgba(25,33,36,0.85);
+  --surface-high:rgba(35,43,46,0.9);
+  --border:rgba(255,255,255,0.08);
+  --border-bright:rgba(255,255,255,0.15);
+  --primary:#00e383;
+  --primary-dim:#00713f;
+  --secondary:#00e0ff;
+  --alert:#c6031a;
+  --text:#dbe4e8;
+  --text-dim:rgba(219,228,232,0.6);
+  --outline:#849586;
+}
 html,body{height:100%;overflow:hidden}
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex}
-.bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.bg-mesh{position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 15% 35%,rgba(68,102,255,.14),transparent 60%),radial-gradient(ellipse 70% 90% at 85% 65%,rgba(0,229,255,.1),transparent 60%),radial-gradient(ellipse 50% 50% at 50% 100%,rgba(170,68,255,.08),transparent 70%)}
-.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.018) 1px,transparent 1px);background-size:50px 50px;animation:gridmove 45s linear infinite}
-@keyframes gridmove{to{background-position:50px 50px}}
-.bg-particle{position:absolute;border-radius:50%;pointer-events:none;animation:float linear infinite}
-@keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:.6}90%{opacity:.3}100%{transform:translateY(-100px) scale(1);opacity:0}}
-.orb{position:absolute;border-radius:50%;filter:blur(100px)}
-.orb1{width:600px;height:600px;top:-25%;left:5%;background:rgba(68,102,255,.12);animation:drift1 20s ease-in-out infinite alternate}
-.orb2{width:500px;height:500px;bottom:-15%;right:0;background:rgba(0,229,255,.09);animation:drift2 25s ease-in-out infinite alternate}
-@keyframes drift1{to{transform:translate(50px,40px)}}
-@keyframes drift2{to{transform:translate(-60px,-50px)}}
-.left{flex:1.3;position:relative;z-index:1;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 60px}
-.brand-wrap{position:relative;z-index:2;width:100%;max-width:500px}
-.brand-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:30px;background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.18);font-size:.6rem;color:var(--cyan);letter-spacing:2.5px;font-family:'Share Tech Mono';margin-bottom:28px;animation:fadeup .5s ease both}
-.brand-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}
-@keyframes blink{50%{opacity:.15}}
-.brand-icon-wrap{margin-bottom:24px;animation:fadeup .5s .05s ease both}
-.brand-icon{width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:2.2rem;box-shadow:0 0 50px rgba(0,229,255,.3),0 0 100px rgba(68,102,255,.15);animation:iconbreathe 4s ease-in-out infinite}
-@keyframes iconbreathe{0%,100%{box-shadow:0 0 40px rgba(0,229,255,.25),0 0 80px rgba(68,102,255,.1)}50%{box-shadow:0 0 70px rgba(0,229,255,.5),0 0 140px rgba(68,102,255,.25)}}
-.brand-title{font-family:'Orbitron';font-size:clamp(2rem,4vw,3.4rem);font-weight:900;line-height:1.05;margin-bottom:18px;letter-spacing:-1px;animation:fadeup .5s .1s ease both}
-.brand-title .g1{background:linear-gradient(135deg,#fff 40%,#aaccff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.brand-title .g2{background:linear-gradient(135deg,var(--cyan) 20%,var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.brand-sub{font-size:.9rem;color:#3d5060;line-height:1.75;margin-bottom:40px;max-width:380px;animation:fadeup .5s .15s ease both}
-@keyframes fadeup{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.features{display:flex;flex-direction:column;gap:12px;animation:fadeup .5s .2s ease both}
-.feat{display:flex;align-items:center;gap:14px;padding:13px 17px;border-radius:14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);backdrop-filter:blur(10px);transition:all .3s}
-.feat:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);transform:translateX(5px)}
-.feat-dot{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
-.fd-red{background:rgba(255,51,68,.1);border:1px solid rgba(255,51,68,.18)}
-.fd-yel{background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.15)}
-.fd-blu{background:rgba(68,102,255,.1);border:1px solid rgba(68,102,255,.15)}
-.fd-cyn{background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.13)}
-.feat-text h4{font-size:.76rem;font-weight:700;color:#dde;margin-bottom:2px}
-.feat-text p{font-size:.66rem;color:var(--dim);line-height:1.5}
-.brand-ver{position:absolute;bottom:24px;left:60px;font-family:'Share Tech Mono';font-size:.5rem;color:#1c2a38;letter-spacing:1px}
-/* RIGHT PANEL */
-.right{width:500px;flex-shrink:0;position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:36px 44px;background:rgba(3,3,14,.98);border-left:1px solid rgba(255,255,255,.06);backdrop-filter:blur(30px);overflow-y:auto}
-.auth-logo{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin-bottom:18px;box-shadow:0 0 35px rgba(0,229,255,.25);animation:iconbreathe 4s ease-in-out infinite}
-.auth-title{font-family:'Orbitron';font-size:1rem;font-weight:900;text-align:center;margin-bottom:5px;color:#fff;letter-spacing:1px}
-.auth-sub{font-size:.7rem;color:var(--dim);text-align:center;margin-bottom:22px;line-height:1.65;max-width:300px}
-/* SETUP GUIDE */
-.setup-guide{width:100%;background:rgba(255,170,0,.04);border:1px solid rgba(255,170,0,.2);border-radius:14px;padding:16px 18px;margin-bottom:18px;font-size:.66rem;color:#8a6800;line-height:2;display:none;font-family:'Share Tech Mono'}
-.setup-guide.show{display:block}
-.setup-guide strong{color:var(--yellow)}
-.setup-guide a{color:var(--cyan);text-decoration:underline}
-/* ALREADY IN */
-.already-in{width:100%;background:rgba(0,221,102,.05);border:1px solid rgba(0,221,102,.18);border-radius:14px;padding:18px;text-align:center;margin-bottom:18px;display:none}
-.already-in h4{font-family:'Orbitron';font-size:.68rem;color:var(--green);margin-bottom:7px;letter-spacing:1px}
-.already-in p{font-size:.7rem;color:#4a6a4a;margin-bottom:12px;line-height:1.5}
-.already-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.already-btn{padding:7px 18px;border-radius:9px;border:1px solid;font-size:.68rem;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;text-decoration:none;display:inline-block;transition:.2s}
-.ab-go{background:rgba(0,221,102,.08);color:var(--green);border-color:rgba(0,221,102,.3)}.ab-go:hover{background:rgba(0,221,102,.18)}
-.ab-out{background:rgba(255,51,68,.06);color:#f66;border-color:rgba(255,51,68,.22)}.ab-out:hover{background:rgba(255,51,68,.16)}
-/* GOOGLE BTN */
-.g-btn{width:100%;padding:15px 20px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(135deg,rgba(66,133,244,.12),rgba(52,168,83,.08));color:#fff;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:12px;transition:all .25s;position:relative;overflow:hidden;margin-bottom:14px;letter-spacing:.2px}
-.g-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(66,133,244,.2),rgba(52,168,83,.14));opacity:0;transition:.25s}
-.g-btn:hover::after{opacity:1}
-.g-btn:hover{border-color:rgba(66,133,244,.5);transform:translateY(-1px);box-shadow:0 8px 30px rgba(66,133,244,.2)}
-.g-btn:active{transform:scale(.98)}
-.g-btn svg{width:20px;height:20px;flex-shrink:0;z-index:1;position:relative}
-.g-btn span{position:relative;z-index:1}
-.g-btn:disabled{opacity:.6;pointer-events:none}
-.g-btn.success{border-color:rgba(0,221,102,.5);background:rgba(0,221,102,.06)}
-/* DIVIDER */
-.divider{display:flex;align-items:center;gap:14px;margin-bottom:16px;width:100%}
-.divider hr{flex:1;border:0;border-top:1px solid rgba(255,255,255,.06)}
-.divider span{font-size:.58rem;color:var(--dim);font-family:'Share Tech Mono';letter-spacing:1.5px;white-space:nowrap}
-/* TAB */
-.tab-sw{display:flex;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:4px;margin-bottom:18px;width:100%;gap:3px}
-.tab-btn{flex:1;padding:9px;border:0;border-radius:9px;cursor:pointer;font-family:'Inter',sans-serif;font-size:.76rem;font-weight:600;transition:all .22s;background:0;color:var(--dim)}
-.tab-btn.active-admin{background:linear-gradient(135deg,rgba(255,51,68,.2),rgba(220,60,0,.15));color:#ff8877;box-shadow:0 2px 12px rgba(255,51,68,.15)}
-.tab-btn.active-user{background:linear-gradient(135deg,rgba(0,229,255,.12),rgba(68,102,255,.12));color:var(--cyan);box-shadow:0 2px 12px rgba(0,229,255,.1)}
-/* FORM */
-.form-panel{display:none;width:100%}
-.form-panel.show{display:block}
-.form-group{margin-bottom:13px}
-.form-lbl{display:block;font-size:.56rem;color:#445566;letter-spacing:2.5px;font-weight:700;margin-bottom:7px;text-transform:uppercase}
-.form-inp{width:100%;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);color:#e0e8f8;font-family:'Inter',sans-serif;font-size:.86rem;transition:all .2s;outline:0}
-.form-inp:focus{border-color:rgba(255,51,68,.5);background:rgba(255,51,68,.04);box-shadow:0 0 0 3px rgba(255,51,68,.08)}
-.form-inp::placeholder{color:#1e2d3a}
-.form-inp.user-style:focus{border-color:rgba(0,229,255,.5);background:rgba(0,229,255,.04);box-shadow:0 0 0 3px rgba(0,229,255,.08)}
-.hint{background:rgba(255,170,0,.04);border:1px solid rgba(255,170,0,.12);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-family:'Share Tech Mono';font-size:.58rem;color:#7a6010;line-height:1.9}
-.hint strong{color:var(--yellow)}
-.pwd-wrap{position:relative}
-.pwd-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:0;border:0;cursor:pointer;font-size:.9rem;color:var(--dim);transition:.2s}
-.pwd-eye:hover{color:#fff}
-.submit-btn{width:100%;padding:14px;border-radius:13px;border:0;cursor:pointer;font-family:'Inter',sans-serif;font-size:.88rem;font-weight:700;letter-spacing:.5px;transition:all .22s;display:flex;align-items:center;justify-content:center;gap:8px}
-.submit-admin{background:linear-gradient(135deg,#c81020,#ff3322);color:#fff;box-shadow:0 4px 24px rgba(255,51,68,.25)}
-.submit-admin:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(255,51,68,.4)}
-.submit-user{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#000;box-shadow:0 4px 24px rgba(0,229,255,.2)}
-.submit-user:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(0,229,255,.32)}
-.submit-btn:active{transform:scale(.98)!important}
-.submit-btn:disabled{opacity:.6;cursor:not-allowed;transform:none!important}
-.msg{font-size:.68rem;margin-top:10px;min-height:20px;text-align:center;font-family:'Share Tech Mono';padding:6px 10px;border-radius:8px;transition:.3s}
-.msg.err{color:#ff7777;background:rgba(255,51,51,.07);border:1px solid rgba(255,51,51,.15)}
-.msg.ok{color:#44ff88;background:rgba(0,220,100,.06);border:1px solid rgba(0,220,100,.18)}
-.msg.warn{color:var(--yellow);background:rgba(255,170,0,.06);border:1px solid rgba(255,170,0,.2)}
-.msg.info{color:#88aaff;background:rgba(68,102,255,.06);border:1px solid rgba(68,102,255,.2)}
-.msg:empty{background:none;border:none;padding:0}
-/* SPINNER */
-.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite;flex-shrink:0}
-.spinner.dark{border-color:rgba(0,0,0,.2);border-top-color:#000}
-@keyframes spin{to{transform:rotate(360deg)}}
-/* AUTH LOADING */
-.auth-block{position:fixed;inset:0;background:rgba(1,1,7,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  flex-direction:column;
+}
+
+/* ── ANIMATED BACKGROUND ── */
+.bg-layer{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(0,227,131,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,227,131,.03) 1px,transparent 1px);
+  background-size:48px 48px;
+  animation:gridshift 60s linear infinite;
+}
+@keyframes gridshift{to{background-position:48px 48px}}
+.bg-orb{position:absolute;border-radius:50%;filter:blur(100px);opacity:.35}
+.orb1{width:500px;height:500px;top:-15%;left:-10%;background:radial-gradient(circle,rgba(68,102,255,.35),transparent 70%);animation:drift1 22s ease-in-out infinite alternate}
+.orb2{width:400px;height:400px;bottom:-10%;right:-5%;background:radial-gradient(circle,rgba(0,224,255,.2),transparent 70%);animation:drift2 28s ease-in-out infinite alternate}
+.orb3{width:300px;height:300px;top:50%;left:45%;background:radial-gradient(circle,rgba(0,227,131,.12),transparent 70%);animation:drift1 18s ease-in-out 3s infinite alternate-reverse}
+@keyframes drift1{to{transform:translate(40px,30px)}}
+@keyframes drift2{to{transform:translate(-50px,-40px)}}
+
+/* ── SCAN LINE ── */
+.scan-line{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--secondary),transparent);animation:scan 5s ease-in-out infinite;z-index:10;opacity:.25}
+@keyframes scan{0%,100%{top:0;opacity:0}10%{opacity:.35}90%{opacity:.2}99%{top:100%}}
+
+/* ── AUTH LOADER ── */
+.auth-block{
+  position:fixed;inset:0;
+  background:rgba(13,21,24,.97);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:9999;transition:opacity .4s;
+}
 .auth-block.gone{opacity:0;pointer-events:none}
-.auth-block-spinner{width:48px;height:48px;border:3px solid rgba(0,229,255,.1);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:20px}
-.auth-block-text{font-family:'Share Tech Mono';font-size:.72rem;color:var(--cyan);letter-spacing:2px}
-.scan-line{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scan 4s ease-in-out infinite;z-index:1;opacity:.3}
-@keyframes scan{0%,100%{top:0;opacity:0}10%{opacity:.4}90%{opacity:.3}99%{top:100%}}
-@media(max-width:820px){body{flex-direction:column;overflow:auto}.left{flex:none;padding:40px 24px 20px;min-height:auto}.features{display:none}.brand-sub{margin-bottom:20px}.brand-icon-wrap{display:none}.right{width:100%;padding:24px 20px;border-left:none;border-top:1px solid rgba(255,255,255,.06)}.brand-ver{left:24px}}
+.auth-spinner{
+  width:44px;height:44px;
+  border:3px solid rgba(0,227,131,.1);
+  border-top-color:var(--primary);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  margin-bottom:18px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.auth-block-txt{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--primary);letter-spacing:2px}
+
+/* ── MAIN LAYOUT ── */
+.page{
+  position:relative;z-index:1;
+  display:flex;
+  flex:1;
+  overflow:hidden;
+}
+
+/* ── LEFT PANEL ── */
+.left{
+  flex:1.2;
+  padding:44px 52px;
+  display:flex;flex-direction:column;
+  justify-content:center;
+  overflow-y:auto;
+  position:relative;
+}
+
+/* Brand */
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:32px}
+.brand-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--primary),#00a855);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;
+  box-shadow:0 0 24px rgba(0,227,131,.35);
+}
+.brand-name{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:600;color:var(--primary);letter-spacing:1px}
+
+.hero-heading{
+  font-size:clamp(1.8rem,3.5vw,2.6rem);
+  font-weight:700;
+  line-height:1.15;
+  color:#fff;
+  margin-bottom:14px;
+}
+.hero-sub{
+  font-size:.88rem;
+  color:var(--text-dim);
+  line-height:1.7;
+  max-width:420px;
+  margin-bottom:36px;
+}
+
+/* Role cards */
+.roles-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;color:var(--outline);
+  letter-spacing:.08em;
+  margin-bottom:14px;
+  text-transform:uppercase;
+}
+.role-cards{display:flex;flex-direction:column;gap:10px;max-width:440px}
+.role-card{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;
+  border-radius:1rem;
+  background:rgba(25,33,36,0.7);
+  border:1.5px solid var(--border);
+  cursor:pointer;
+  transition:all .22s cubic-bezier(.2,.8,.2,1);
+  position:relative;
+  overflow:hidden;
+}
+.role-card::before{
+  content:'';position:absolute;inset:0;border-radius:1rem;
+  background:linear-gradient(135deg,rgba(255,255,255,.03),transparent);
+  opacity:0;transition:.25s;
+}
+.role-card:hover{transform:translateX(5px);border-color:rgba(255,255,255,.2)}
+.role-card:hover::before{opacity:1}
+.role-card.selected{border-color:var(--primary);box-shadow:0 0 0 1px rgba(0,227,131,.2),0 4px 24px rgba(0,227,131,.1)}
+.role-card.selected .role-ico-wrap{box-shadow:0 0 16px currentColor}
+
+.role-ico-wrap{
+  width:40px;height:40px;border-radius:.75rem;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;flex-shrink:0;
+}
+.ico-admin{background:rgba(0,227,131,.1);border:1px solid rgba(0,227,131,.25);color:var(--primary)}
+.ico-ev{background:rgba(255,60,70,.1);border:1px solid rgba(255,60,70,.22);color:#ff5560}
+.ico-civic{background:rgba(0,224,255,.08);border:1px solid rgba(0,224,255,.18);color:var(--secondary)}
+.ico-signal{background:rgba(255,170,0,.09);border:1px solid rgba(255,170,0,.2);color:#ffaa00}
+
+.role-text{flex:1}
+.role-cat{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;letter-spacing:.08em;
+  color:var(--outline);margin-bottom:3px;text-transform:uppercase;
+}
+.role-name{font-size:.9rem;font-weight:600;color:var(--text)}
+
+.role-arrow{
+  font-size:.9rem;color:var(--border-bright);
+  transform:translateX(-4px);opacity:0;transition:.2s;
+}
+.role-card:hover .role-arrow,.role-card.selected .role-arrow{opacity:1;transform:none}
+.role-card.selected .role-arrow{color:var(--primary)}
+
+/* ── RIGHT PANEL ── */
+.right{
+  width:480px;flex-shrink:0;
+  padding:40px 44px;
+  background:rgba(7,15,18,0.97);
+  border-left:1px solid rgba(255,255,255,.06);
+  display:flex;flex-direction:column;justify-content:center;
+  position:relative;overflow-y:auto;
+}
+
+/* Fingerprint decorative */
+.fp-deco{
+  position:absolute;top:28px;right:32px;
+  font-size:4.5rem;opacity:.06;
+  user-select:none;pointer-events:none;
+  line-height:1;
+}
+
+.login-title{
+  font-size:1.6rem;font-weight:700;color:#fff;
+  margin-bottom:6px;
+}
+.login-sub{font-size:.8rem;color:var(--text-dim);margin-bottom:28px;line-height:1.6}
+
+/* Form labels */
+.f-label{
+  display:block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.62rem;color:var(--text-dim);
+  letter-spacing:.06em;margin-bottom:8px;
+}
+.f-group{margin-bottom:18px;position:relative}
+
+/* Inputs */
+.f-input-wrap{position:relative;display:flex;align-items:center}
+.f-icon{
+  position:absolute;left:13px;
+  font-size:.9rem;color:var(--outline);
+  pointer-events:none;z-index:1;
+  line-height:1;
+}
+.f-input{
+  width:100%;
+  padding:13px 14px 13px 40px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:.5rem;
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:.9rem;
+  outline:none;
+  transition:all .2s;
+}
+.f-input::placeholder{color:rgba(132,149,134,.5);font-size:.82rem}
+.f-input:focus{
+  border-color:rgba(0,224,255,.5);
+  background:rgba(0,224,255,.04);
+  box-shadow:0 0 0 3px rgba(0,224,255,.08);
+}
+.f-input.admin-style:focus{
+  border-color:rgba(0,227,131,.5);
+  background:rgba(0,227,131,.04);
+  box-shadow:0 0 0 3px rgba(0,227,131,.08);
+}
+.pwd-eye{
+  position:absolute;right:12px;
+  background:none;border:none;
+  cursor:pointer;color:var(--outline);
+  font-size:.9rem;padding:4px;
+  transition:.2s;
+}
+.pwd-eye:hover{color:var(--text)}
+
+/* Checkbox row */
+.f-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.f-check-wrap{display:flex;align-items:center;gap:8px;cursor:pointer}
+.f-check{
+  width:15px;height:15px;
+  border:1.5px solid var(--border-bright);
+  border-radius:4px;background:rgba(255,255,255,.04);
+  cursor:pointer;accent-color:var(--primary);
+}
+.f-check-lbl{font-size:.75rem;color:var(--text-dim);cursor:pointer}
+.f-link{font-size:.75rem;color:var(--primary);text-decoration:none;transition:.15s}
+.f-link:hover{text-decoration:underline}
+
+/* Submit button */
+.btn-submit{
+  width:100%;padding:15px 20px;
+  border-radius:.5rem;border:none;
+  background:var(--primary);
+  color:#00391d;
+  font-family:'Inter',sans-serif;
+  font-size:.92rem;font-weight:700;
+  letter-spacing:.3px;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:all .22s;
+  margin-bottom:22px;
+  box-shadow:0 0 24px rgba(0,227,131,.2);
+}
+.btn-submit:hover{background:#00ff94;box-shadow:0 0 32px rgba(0,255,148,.35);transform:translateY(-1px)}
+.btn-submit:active{transform:scale(.98)}
+.btn-submit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+/* Divider */
+.divider{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:18px;
+}
+.divider hr{flex:1;border:0;border-top:1px solid var(--border)}
+.divider span{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;color:var(--outline);
+  letter-spacing:.08em;white-space:nowrap;
+}
+
+/* SSO buttons */
+.sso-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.btn-sso{
+  padding:12px 14px;
+  border-radius:.5rem;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border-bright);
+  color:var(--text);
+  font-family:'Inter',sans-serif;
+  font-size:.76rem;font-weight:500;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .2s;
+}
+.btn-sso:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.25);transform:translateY(-1px)}
+.btn-sso:active{transform:scale(.98)}
+
+.legal{
+  font-size:.66rem;color:var(--outline);
+  line-height:1.65;text-align:center;
+  font-style:italic;
+}
+
+/* Message */
+.msg{
+  font-size:.7rem;font-family:'JetBrains Mono',monospace;
+  margin-top:10px;min-height:18px;text-align:center;
+  padding:7px 12px;border-radius:.5rem;
+  transition:.3s;
+}
+.msg.err{color:#ff8080;background:rgba(255,0,0,.08);border:1px solid rgba(255,0,0,.18)}
+.msg.ok{color:#60f08a;background:rgba(0,200,80,.07);border:1px solid rgba(0,200,80,.2)}
+.msg.warn{color:#ffaa00;background:rgba(255,170,0,.07);border:1px solid rgba(255,170,0,.2)}
+.msg.info{color:var(--secondary);background:rgba(0,224,255,.06);border:1px solid rgba(0,224,255,.2)}
+.msg:empty{background:none;border:none;padding:0}
+
+/* Already signed in */
+.already-in{
+  background:rgba(0,227,131,.05);
+  border:1px solid rgba(0,227,131,.18);
+  border-radius:.75rem;
+  padding:16px 18px;
+  margin-bottom:18px;
+  display:none;
+}
+.already-in h4{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--primary);margin-bottom:6px;letter-spacing:1px}
+.already-in p{font-size:.72rem;color:var(--text-dim);margin-bottom:12px;line-height:1.5}
+.already-btns{display:flex;gap:8px}
+.ab-btn{
+  padding:7px 16px;border-radius:.5rem;border:1px solid;
+  font-size:.7rem;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;text-decoration:none;
+  display:inline-block;transition:.18s;
+}
+.ab-go{background:rgba(0,227,131,.08);color:var(--primary);border-color:rgba(0,227,131,.3)}.ab-go:hover{background:rgba(0,227,131,.2)}
+.ab-out{background:rgba(198,3,26,.07);color:#ff6070;border-color:rgba(198,3,26,.25)}.ab-out:hover{background:rgba(198,3,26,.18)}
+
+/* Spinner */
+.spinner{width:15px;height:15px;border:2px solid rgba(0,57,29,.4);border-top-color:#00391d;border-radius:50%;animation:spin .6s linear infinite}
+
+/* ── STATUS BAR ── */
+.status-bar{
+  position:relative;z-index:1;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 44px;
+  background:rgba(7,15,18,.98);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.status-left{display:flex;align-items:center;gap:10px}
+.status-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:.58rem;color:var(--outline);
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);box-shadow:0 0 8px var(--primary);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 4px var(--primary)}50%{box-shadow:0 0 14px var(--primary)}}
+.status-text{font-size:.72rem;color:var(--primary);font-weight:500}
+.status-right{font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--outline);letter-spacing:.06em}
+
+/* ── SETUP GUIDE ── */
+.setup-guide{
+  background:rgba(255,170,0,.04);border:1px solid rgba(255,170,0,.2);
+  border-radius:.75rem;padding:14px 16px;margin-bottom:16px;
+  font-size:.65rem;color:#8a6800;line-height:2;
+  display:none;font-family:'JetBrains Mono',monospace;
+}
+.setup-guide.show{display:block}
+.setup-guide strong{color:#ffaa00}
+.setup-guide a{color:var(--secondary);text-decoration:underline}
+
+/* ── RESPONSIVE ── */
+@media(max-width:880px){
+  html,body{height:auto;overflow:auto}
+  .page{flex-direction:column;overflow:visible}
+  .left{padding:30px 24px 20px;justify-content:flex-start}
+  .right{width:100%;padding:24px;border-left:none;border-top:1px solid var(--border)}
+  .status-bar{padding:10px 20px}
+  .fp-deco{display:none}
+  .right{overflow:visible}
+}
+@media(max-width:500px){
+  .left{padding:24px 16px 16px}
+  .hero-heading{font-size:1.5rem}
+}
 </style>
 </head>
 <body>
 
+<!-- Auth loader -->
 <div class="auth-block" id="authBlock">
-  <div class="auth-block-spinner"></div>
-  <div class="auth-block-text" id="authBlockText">VERIFYING SESSION...</div>
+  <div class="auth-spinner"></div>
+  <div class="auth-block-txt" id="authBlockTxt">VERIFYING SESSION...</div>
 </div>
+
+<!-- Scan line -->
 <div class="scan-line"></div>
-<div class="bg">
-  <div class="bg-mesh"></div><div class="bg-grid"></div>
-  <div class="orb orb1"></div><div class="orb orb2"></div>
+
+<!-- BG -->
+<div class="bg-layer">
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb1"></div>
+  <div class="bg-orb orb2"></div>
+  <div class="bg-orb orb3"></div>
 </div>
 
-<!-- LEFT -->
-<div class="left">
-  <div class="brand-wrap">
-    <div class="brand-badge"><div class="dot"></div>LIVE SYSTEM · V6.0 · SILK BOARD JN.</div>
-    <div class="brand-icon-wrap"><div class="brand-icon">📡</div></div>
-    <div class="brand-title"><span class="g1">Emergency</span><br><span class="g2">Clearance</span><br><span class="g1">System</span></div>
-    <p class="brand-sub">Military-grade V2X coordination. Real-time GPS. Kalman smoothing. Vincenty precision. Firebase DB-powered admin management.</p>
-    <div class="features">
-      <div class="feat"><div class="feat-dot fd-red">🚨</div><div class="feat-text"><h4>Emergency Vehicle</h4><p>Kalman-filtered GPS · Siren simulation · Auto route logging</p></div></div>
-      <div class="feat"><div class="feat-dot fd-yel">🚦</div><div class="feat-text"><h4>Smart Traffic Signal</h4><p>V2I preemption within range · Drag/rotate intersection widget</p></div></div>
-      <div class="feat"><div class="feat-dot fd-blu">🚗</div><div class="feat-text"><h4>V2V Civilian Nodes</h4><p>Vincenty proximity · Directional yield arrow · Audio alerts</p></div></div>
-      <div class="feat"><div class="feat-dot fd-cyn">🎛️</div><div class="feat-text"><h4>Admin Control Center</h4><p>Live map · User management · Analytics · Signal override</p></div></div>
+<!-- MAIN -->
+<div class="page">
+
+  <!-- LEFT -->
+  <div class="left">
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-icon">⊞</div>
+      <span class="brand-name">Syntrix</span>
     </div>
-  </div>
-  <div class="brand-ver">V2X CONNECT v6.0 · SILK BOARD JUNCTION, BANGALORE · VINCENTY WGS-84 · KALMAN GPS · FIREBASE</div>
-</div>
 
-<!-- RIGHT -->
-<div class="right">
+    <h1 class="hero-heading">Unified Command<br>Systems For Modern Cities</h1>
+    <p class="hero-sub">Secure access portal for Syntrix Traffic Control and Emergency Infrastructure. Please select your operational role to begin.</p>
 
-  <!-- Setup guide -->
-  <div class="setup-guide" id="setupGuide">
-    <strong>⚠️ Firebase Auth not enabled. Fix in 3 steps:</strong><br><br>
-    1. <a href="https://console.firebase.google.com/project/v2v-v2i-project/authentication/providers" target="_blank">Firebase Console → Authentication</a><br>
-    2. Click <strong>Google</strong> → Enable → Save<br>
-    3. Run <strong>firebase serve</strong> and open localhost:5000<br><br>
-    ↓ Until then, use the <strong>demo admin</strong> login below
-  </div>
+    <div class="roles-label">Select Role</div>
+    <div class="role-cards">
 
-  <!-- Already signed in -->
-  <div class="already-in" id="alreadyIn">
-    <h4>✅ ALREADY SIGNED IN</h4>
-    <p id="alreadyTxt">Loading session...</p>
-    <div class="already-btns">
-      <a class="already-btn ab-go" id="alreadyGoBtn" href="#">Continue →</a>
-      <button class="already-btn ab-out" onclick="logoutAndReset()">Sign Out</button>
+      <div class="role-card selected" id="card-admin" onclick="selectRole('admin')">
+        <div class="role-ico-wrap ico-admin">⊛</div>
+        <div class="role-text">
+          <div class="role-cat">Authority</div>
+          <div class="role-name">City Administrator</div>
+        </div>
+        <span class="role-arrow">›</span>
+      </div>
+
+      <div class="role-card" id="card-ev" onclick="selectRole('ev')">
+        <div class="role-ico-wrap ico-ev">✳</div>
+        <div class="role-text">
+          <div class="role-cat">Response</div>
+          <div class="role-name">Emergency Responder</div>
+        </div>
+        <span class="role-arrow">›</span>
+      </div>
+
+      <div class="role-card" id="card-civic" onclick="selectRole('civic')">
+        <div class="role-ico-wrap ico-civic">⊕</div>
+        <div class="role-text">
+          <div class="role-cat">Civic</div>
+          <div class="role-name">Civic Driver</div>
+        </div>
+        <span class="role-arrow">›</span>
+      </div>
+
+      <div class="role-card" id="card-signal" onclick="selectRole('signal')">
+        <div class="role-ico-wrap ico-signal">⊘</div>
+        <div class="role-text">
+          <div class="role-cat">Infrastructure</div>
+          <div class="role-name">Signal Authority</div>
+        </div>
+        <span class="role-arrow">›</span>
+      </div>
+
     </div>
-  </div>
+  </div><!-- /left -->
 
-  <div class="auth-logo">📡</div>
-  <div class="auth-title">V2X CONNECT</div>
-  <div class="auth-sub">Sign in with Google — or use admin login below</div>
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="fp-deco">☞</div>
 
-  <!-- GOOGLE SIGN-IN -->
-  <button class="g-btn" id="googleBtn" onclick="signInWithGoogle()">
-    <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-    <span>Continue with Google</span>
-  </button>
-  <div class="msg" id="googleErr"></div>
-
-  <div class="divider"><hr><span>OR ADMIN / GUEST LOGIN</span><hr></div>
-
-  <div class="tab-sw">
-    <button class="tab-btn active-admin" id="tabAdmin" onclick="switchTab('admin')">🔐 Admin</button>
-    <button class="tab-btn" id="tabUser" onclick="switchTab('user')">👤 Guest</button>
-  </div>
-
-  <!-- ADMIN FORM -->
-  <div class="form-panel show" id="panelAdmin">
-    <div class="hint">Firebase email/password — or demo:<br>Email: <strong>admin</strong> &nbsp;|&nbsp; Password: <strong>V2X@2024</strong></div>
-    <div class="form-group">
-      <label class="form-lbl" for="adminEmail">EMAIL / USERNAME</label>
-      <input class="form-inp" type="text" id="adminEmail" placeholder="admin@example.com or 'admin'" autocomplete="email">
+    <!-- Setup guide -->
+    <div class="setup-guide" id="setupGuide">
+      <strong>⚠️ Firebase Auth not enabled. Fix:</strong><br>
+      1. <a href="https://console.firebase.google.com/project/v2v-v2i-project/authentication/providers" target="_blank">Firebase Console → Authentication</a><br>
+      2. Click <strong>Google</strong> → Enable → Save<br>
+      3. Run <strong>firebase serve</strong> and open localhost:5000
     </div>
-    <div class="form-group">
-      <label class="form-lbl" for="adminPass">PASSWORD</label>
-      <div class="pwd-wrap">
-        <input class="form-inp" type="password" id="adminPass" placeholder="Enter password" autocomplete="current-password">
-        <button class="pwd-eye" onclick="togglePwd('adminPass','pwdEye')" type="button" id="pwdEye">👁</button>
+
+    <!-- Already signed in -->
+    <div class="already-in" id="alreadyIn">
+      <h4>✅ ALREADY SIGNED IN</h4>
+      <p id="alreadyTxt">Loading session...</p>
+      <div class="already-btns">
+        <a class="ab-btn ab-go" id="alreadyGoBtn" href="#">Continue →</a>
+        <button class="ab-btn ab-out" onclick="logoutAndReset()">Sign Out</button>
       </div>
     </div>
-    <button class="submit-btn submit-admin" id="adminLoginBtn" onclick="loginAdmin()">🔐 Access Control Center</button>
-    <div class="msg" id="adminErr"></div>
-  </div>
 
-  <!-- GUEST FORM -->
-  <div class="form-panel" id="panelUser">
-    <div class="form-group">
-      <label class="form-lbl" for="userName">YOUR NAME / CALL SIGN</label>
-      <input class="form-inp user-style" type="text" id="userName" placeholder="e.g. Ayush, EV-Alpha, Signal-01" maxlength="30" autocomplete="nickname">
+    <h2 class="login-title">Secure Login</h2>
+    <p class="login-sub">Enter your credentials or use SSO to continue.</p>
+
+    <div class="f-group">
+      <label class="f-label" for="inputEmail">Terminal ID / Email</label>
+      <div class="f-input-wrap">
+        <span class="f-icon">@</span>
+        <input class="f-input admin-style" type="text" id="inputEmail" placeholder="admin@district01.city" autocomplete="email">
+      </div>
     </div>
-    <button class="submit-btn submit-user" onclick="loginUser()">👤 Continue to Role Selection →</button>
-    <div class="msg" id="userErr"></div>
-  </div>
 
+    <div class="f-group">
+      <label class="f-label" for="inputPass">Access Key</label>
+      <div class="f-input-wrap">
+        <span class="f-icon">🔒</span>
+        <input class="f-input admin-style" type="password" id="inputPass" placeholder="••••••••••" autocomplete="current-password">
+        <button class="pwd-eye" onclick="togglePwd('inputPass','pwdEyeBtn')" type="button" id="pwdEyeBtn" title="Toggle visibility">👁</button>
+      </div>
+    </div>
+
+    <div class="f-row">
+      <label class="f-check-wrap">
+        <input type="checkbox" class="f-check" id="trustTerminal">
+        <span class="f-check-lbl">Trust this terminal</span>
+      </label>
+      <a href="#" class="f-link" onclick="resetAccess();return false;">Reset Access</a>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="handleLogin()">
+      <span id="submitTxt">Initialize Session</span>
+      <span>→</span>
+    </button>
+
+    <div class="msg" id="mainMsg"></div>
+
+    <div class="divider">
+      <hr><span>Federated Auth</span><hr>
+    </div>
+
+    <div class="sso-row">
+      <button class="btn-sso" id="googleBtn" onclick="signInWithGoogle()">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Google Single Sign-On
+      </button>
+      <button class="btn-sso" id="entraBtn" onclick="showMsg('City SSO (Entra) is not configured for this deployment.','warn')">
+        🛡️ City SSO (Entra)
+      </button>
+    </div>
+
+    <p class="legal">Authorized personnel only. All access is logged and monitored by the Central Data Office.</p>
+
+  </div><!-- /right -->
+</div><!-- /page -->
+
+<!-- STATUS BAR -->
+<div class="status-bar">
+  <div class="status-left">
+    <span class="status-label">System Status</span>
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">All Nodes Operational</span>
+  </div>
+  <div class="status-right">POWERED BY FIREBASE</div>
 </div>
 
 <!-- Firebase SDKs -->
@@ -234,280 +566,239 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);displ
 <script src="firebase-config.js"></script>
 <script>
 
-// ── PARTICLES ──────────────────────────────────────────────────
-(function() {
-  const bg = document.querySelector('.bg');
-  for (let i = 0; i < 18; i++) {
-    const p = document.createElement('div');
-    p.className = 'bg-particle';
-    const size = Math.random() * 4 + 2;
-    const cols = ['rgba(0,229,255,.7)','rgba(68,102,255,.6)','rgba(170,68,255,.5)','rgba(0,221,102,.5)'];
-    p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${cols[~~(Math.random()*4)]};animation-duration:${Math.random()*12+8}s;animation-delay:${Math.random()*10}s`;
+// ── PARTICLES ────────────────────────────────────────────────
+(function(){
+  const bg = document.querySelector('.bg-layer');
+  for(let i=0;i<14;i++){
+    const p=document.createElement('div');
+    const s=Math.random()*3+1.5;
+    const cols=['rgba(0,227,131,.7)','rgba(0,224,255,.6)','rgba(68,102,255,.5)','rgba(255,255,255,.3)'];
+    p.style.cssText=`position:absolute;border-radius:50%;width:${s}px;height:${s}px;left:${Math.random()*100}%;background:${cols[~~(Math.random()*4)]};animation:float ${Math.random()*14+9}s ${Math.random()*10}s linear infinite;pointer-events:none`;
     bg.appendChild(p);
   }
 })();
+const floatKf=document.createElement('style');
+floatKf.textContent='@keyframes float{0%{transform:translateY(100vh) scale(0);opacity:0}8%{opacity:.6}90%{opacity:.25}100%{transform:translateY(-80px) scale(1.2);opacity:0}}';
+document.head.appendChild(floatKf);
 
-// ================================================================
-//  GOOGLE AUTH FLOW
-//
-//  HOW IT WORKS:
-//  1. User clicks "Continue with Google" → signInWithPopup()
-//  2. On success → registerUser() saves to /v4/users
-//  3. seedSuperAdmin() seeds /v4/admins if this is the super admin
-//  4. checkIsAdmin(uid) reads /v4/admins/{uid} → sets isAdmin in session
-//  5. Redirect: admin → control.html, user → user-portal.html
-//
-//  POPUP BLOCKED? → auto-falls back to signInWithRedirect()
-//  getRedirectResult() catches the return and completes auth.
-// ================================================================
+// ── ROLE SELECTION ───────────────────────────────────────────
+let selectedRole = 'admin';
 
-// Track whether we are mid-popup sign-in (to avoid double redirect)
+function selectRole(role){
+  selectedRole = role;
+  document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected'));
+  const cardMap={admin:'card-admin',ev:'card-ev',civic:'card-civic',signal:'card-signal'};
+  const el=document.getElementById(cardMap[role]);
+  if(el)el.classList.add('selected');
+
+  const emailPlaceholders={
+    admin:'admin@district01.city',
+    ev:'responder@district01.city',
+    civic:'driver@district01.city',
+    signal:'signal01@district01.city'
+  };
+  document.getElementById('inputEmail').placeholder=emailPlaceholders[role]||'user@district01.city';
+  clearMsg();
+}
+
+// ── TRACK WHETHER POPUP HANDLED ───────────────────────────────
 let handledByPopup = false;
 
-// ── Handle redirect return from Google (after signInWithRedirect) ──
-auth.getRedirectResult()
-  .then(result => {
-    if (result && result.user) {
-      handledByPopup = true;
-      completeGoogleSignIn(result.user, true);
-    }
-  })
-  .catch(err => {
-    const ignore = ['auth/no-current-user','auth/null-user','auth/user-cancelled'];
-    if (!ignore.includes(err.code) && isAuthConfigError(err.code)) showSetupGuide();
-  });
-
-// ── onAuthStateChanged — hide loader, handle returning sessions ──
-auth.onAuthStateChanged(user => {
-  hideLoader();
-  if (user && !handledByPopup) {
-    // Returning session (user was already signed in before page load)
-    completeGoogleSignIn(user, false);
-  } else if (!user) {
-    const s = getSession();
-    if (s.user) showAlreadyIn(s);
-  }
+// ── ON AUTH STATE ─────────────────────────────────────────────
+auth.getRedirectResult().then(result=>{
+  if(result&&result.user){handledByPopup=true;completeGoogleSignIn(result.user,true);}
+}).catch(err=>{
+  const ignore=['auth/no-current-user','auth/null-user','auth/user-cancelled'];
+  if(!ignore.includes(err.code)&&isAuthConfigError(err.code))showSetupGuide();
 });
 
-// ================================================================
-//  completeGoogleSignIn(user, shouldRedirect)
-//
-//  RACE CONDITION FIX:
-//  seedSuperAdmin() writes to /v4/admins THEN checkIsAdmin() reads it.
-//  But they are both async — if we run them in parallel, checkIsAdmin
-//  might read BEFORE the write completes → super admin shows as regular user.
-//
-//  FIX: If email === SUPER_ADMIN_EMAIL, skip the DB check entirely
-//  and force isAdmin = true. The seed write happens in background.
-// ================================================================
-async function completeGoogleSignIn(user, shouldRedirect) {
-  const name = user.displayName || user.email.split('@')[0];
-
-  // ── FAST PATH: Super Admin email always gets admin ──
-  // No DB read needed — prevents race condition with seedSuperAdmin
-  const isSuperAdmin = (user.email === SUPER_ADMIN_EMAIL);
-
-  // Register to /v4/users (non-blocking — don't await)
-  registerUser(user).catch(() => {});
-
-  // Seed super admin entry in /v4/admins (non-blocking)
-  if (isSuperAdmin) seedSuperAdmin(user);
-
-  // Check /v4/admins for non-super-admin users
-  let isAdmin = isSuperAdmin;
-  if (!isAdmin) {
-    isAdmin = await checkIsAdmin(user.uid);
+auth.onAuthStateChanged(user=>{
+  hideLoader();
+  if(user&&!handledByPopup){completeGoogleSignIn(user,false);}
+  else if(!user){
+    const s=getSession();
+    if(s.user)showAlreadyIn(s);
   }
+  updateFirebaseStatus();
+});
 
-  setSession({
-    user:    name,
-    email:   user.email,
-    photo:   user.photoURL || '',
-    uid:     user.uid,
-    isAdmin: isAdmin,
-    role:    getSession().role || (isAdmin ? 'admin' : ''),
-  });
-
+// ── COMPLETE GOOGLE SIGN-IN ───────────────────────────────────
+async function completeGoogleSignIn(user,shouldRedirect){
+  const name=user.displayName||user.email.split('@')[0];
+  const isSuperAdmin=(user.email===SUPER_ADMIN_EMAIL);
+  registerUser(user).catch(()=>{});
+  if(isSuperAdmin)seedSuperAdmin(user);
+  let isAdmin=isSuperAdmin;
+  if(!isAdmin)isAdmin=await checkIsAdmin(user.uid);
+  await checkAndApplyPendingInvite(user).catch(()=>{});
+  setSession({user:name,email:user.email,photo:user.photoURL||'',uid:user.uid,isAdmin,role:getSession().role||(isAdmin?'admin':'')});
   showAlreadyIn(getSession());
-
-  // Redirect if this was a fresh sign-in (popup or redirect flow)
-  if (shouldRedirect) {
-    setTimeout(() => {
-      window.location.href = isAdmin ? 'control.html' : 'user-portal.html';
-    }, 700);
+  if(shouldRedirect){
+    setTimeout(()=>{window.location.href=isAdmin?'control.html':'user-portal.html';},700);
   }
 }
 
-function showAlreadyIn(s) {
-  const banner = document.getElementById('alreadyIn');
-  const txt    = document.getElementById('alreadyTxt');
-  const goBtn  = document.getElementById('alreadyGoBtn');
-  if (s.isAdmin) {
-    txt.textContent   = '🔐 Admin: ' + s.user + (s.email === SUPER_ADMIN_EMAIL ? ' ⭐ Super Admin' : '');
-    goBtn.href        = 'control.html';
-    goBtn.textContent = '🎛️ Open Control Center →';
+function showAlreadyIn(s){
+  const banner=document.getElementById('alreadyIn');
+  const txt=document.getElementById('alreadyTxt');
+  const goBtn=document.getElementById('alreadyGoBtn');
+  if(s.isAdmin){
+    txt.textContent='🔐 Admin: '+s.user+(s.email===SUPER_ADMIN_EMAIL?' ⭐ Super Admin':'');
+    goBtn.href='control.html';goBtn.textContent='Open Dashboard →';
   } else {
-    txt.textContent   = 'Signed in as: ' + s.user + (s.role ? ' · ' + s.role : ' · No role');
-    goBtn.href        = s.role ? getRoleUrl(s.role) : 'user-portal.html';
-    goBtn.textContent = s.role ? 'Open ' + s.role + ' App →' : '🎯 Select Role →';
+    txt.textContent='Signed in as: '+s.user+(s.role?' · '+s.role:' · No role assigned');
+    goBtn.href=s.role?getRoleUrl(s.role):'user-portal.html';
+    goBtn.textContent=s.role?'Continue to '+s.role+' →':'Select Role →';
   }
-  banner.style.display = 'block';
+  banner.style.display='block';
 }
 
-// ================================================================
-//  GOOGLE SIGN-IN
-// ================================================================
-function signInWithGoogle() {
-  const btn = document.getElementById('googleBtn');
-  clearMsg('googleErr');
-  btn.disabled  = true;
-  btn.innerHTML = '<div class="spinner"></div><span>Connecting to Google...</span>';
+// ── HANDLE LOGIN ──────────────────────────────────────────────
+async function handleLogin(){
+  const rawInput=document.getElementById('inputEmail').value.trim();
+  const pass=document.getElementById('inputPass').value;
+  clearMsg();
+  if(!rawInput){showMsg('⚠️ Enter your Terminal ID or email','warn');return;}
 
-  const provider = new firebase.auth.GoogleAuthProvider();
-  provider.addScope('email');
-  provider.addScope('profile');
-  provider.setCustomParameters({ prompt: 'select_account' });
-
-  auth.signInWithPopup(provider)
-    .then(result => {
-      handledByPopup = true;  // prevent onAuthStateChanged from double-handling
-      btn.classList.add('success');
-      btn.innerHTML = '<span>✅ Signed in — verifying...</span>';
-      completeGoogleSignIn(result.user, true);
-    })
-    .catch(err => {
-      if (err.code === 'auth/popup-blocked') {
-        btn.innerHTML = '<div class="spinner"></div><span>Redirecting to Google...</span>';
-        setTimeout(() => auth.signInWithRedirect(provider), 400);
-        return;
-      }
-      if (err.code === 'auth/popup-closed-by-user') {
-        resetGoogleBtn();
-        showMsg('googleErr', '⚠️ Sign-in cancelled. Try again.', 'warn');
-        return;
-      }
-      if (isAuthConfigError(err.code)) { showSetupGuide(); showMsg('googleErr', '⚠️ Google Auth not set up. See guide above.', 'warn'); resetGoogleBtn(); return; }
-      if (err.code === 'auth/unauthorized-domain') { showMsg('googleErr', '⛔ Unauthorized domain. Run: firebase serve', 'err'); resetGoogleBtn(); return; }
-      if (err.code === 'auth/network-request-failed') { showMsg('googleErr', '⛔ Network error. Check your internet.', 'err'); resetGoogleBtn(); return; }
-      showMsg('googleErr', '❌ ' + (err.message || err.code), 'err');
-      resetGoogleBtn();
-    });
-}
-
-function resetGoogleBtn() {
-  const btn = document.getElementById('googleBtn');
-  btn.disabled  = false;
-  btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg><span>Continue with Google</span>`;
-}
-
-// ================================================================
-//  ADMIN LOGIN (Firebase Email/Password + Demo Fallback)
-// ================================================================
-async function loginAdmin() {
-  const rawInput = document.getElementById('adminEmail').value.trim();
-  const pass     = document.getElementById('adminPass').value;
-  const btn      = document.getElementById('adminLoginBtn');
-  clearMsg('adminErr');
-  if (!rawInput) { showMsg('adminErr', '⚠️ Enter email or username', 'err'); return; }
-  if (!pass)     { showMsg('adminErr', '⚠️ Enter password', 'err'); return; }
-
-  // ── DEMO FALLBACK ──
-  if (rawInput.toLowerCase() === FALLBACK_ADMIN.user && pass === FALLBACK_ADMIN.pass) {
-    setSession({ user: 'DEMO ADMIN', email: 'admin@v2x.local', uid: 'admin_local', isAdmin: true, role: 'admin' });
-    showMsg('adminErr', '✅ Demo admin — loading Control Center...', 'ok');
-    btn.disabled = true;
-    setTimeout(() => window.location.href = 'control.html', 700);
+  // Non-admin roles → guest login with name as identifier
+  if(selectedRole!=='admin'){
+    if(!rawInput||rawInput.length<2){showMsg('⚠️ Enter your name or ID','warn');return;}
+    setSession({user:rawInput,role:selectedRole,isAdmin:false,uid:'guest_'+Date.now()});
+    showMsg('✅ Welcome '+rawInput+' — redirecting...','ok');
+    setBtnLoading(true);
+    setTimeout(()=>{
+      const dest={ev:'user-portal.html',civic:'vehicle1.html',signal:'user-portal.html'};
+      window.location.href=dest[selectedRole]||'user-portal.html';
+    },600);
     return;
   }
 
-  // ── FIREBASE EMAIL/PASSWORD ──
-  const email = rawInput.includes('@') ? rawInput : rawInput + '@v2x.local';
-  btn.disabled  = true;
-  btn.innerHTML = '<div class="spinner"></div><span>Signing in...</span>';
+  // Admin role → Firebase email/password
+  if(!pass){showMsg('⚠️ Enter your Access Key','warn');return;}
 
-  try {
-    const result = await auth.signInWithEmailAndPassword(email, pass);
-    const u = result.user;
+  // Demo fallback
+  if(rawInput.toLowerCase()===FALLBACK_ADMIN.user&&pass===FALLBACK_ADMIN.pass){
+    setSession({user:'DEMO ADMIN',email:'admin@v2x.local',uid:'admin_local',isAdmin:true,role:'admin'});
+    showMsg('✅ Demo admin — loading Control Center...','ok');
+    setBtnLoading(true);
+    setTimeout(()=>window.location.href='control.html',700);
+    return;
+  }
 
-    // Check DB for admin status
-    const isAdmin = await checkIsAdmin(u.uid);
-    if (!isAdmin) {
+  const email=rawInput.includes('@')?rawInput:rawInput+'@v2x.local';
+  setBtnLoading(true);
+  try{
+    const result=await auth.signInWithEmailAndPassword(email,pass);
+    const u=result.user;
+    const isAdmin=await checkIsAdmin(u.uid);
+    if(!isAdmin){
       await auth.signOut();
-      btn.disabled  = false;
-      btn.innerHTML = '🔐 Access Control Center';
-      showMsg('adminErr', '⛔ No admin access. Ask the Super Admin to promote you.', 'err');
+      setBtnLoading(false);
+      showMsg('⛔ No admin access. Contact the Super Admin.','err');
       return;
     }
-    const name = u.displayName || u.email.split('@')[0];
-    setSession({ user: name.toUpperCase(), email: u.email, uid: u.uid, isAdmin: true, role: 'admin' });
-    showMsg('adminErr', '✅ Admin verified — loading...', 'ok');
-    setTimeout(() => window.location.href = 'control.html', 600);
-  } catch (e) {
-    btn.disabled  = false;
-    btn.innerHTML = '🔐 Access Control Center';
-    const msgs = {
-      'auth/configuration-not-found': '⚠️ Firebase Auth not set up. Use demo: admin / V2X@2024',
-      'auth/user-not-found':          '❌ No account with this email.',
-      'auth/wrong-password':          '❌ Wrong password.',
-      'auth/invalid-email':           '❌ Invalid email format.',
-      'auth/too-many-requests':       '⚠️ Too many attempts. Wait a minute.',
-      'auth/operation-not-allowed':   '⚠️ Firebase Auth not enabled. Use demo: admin / V2X@2024',
-      'auth/invalid-credential':      '❌ Invalid email or password.',
+    const name=u.displayName||u.email.split('@')[0];
+    setSession({user:name.toUpperCase(),email:u.email,uid:u.uid,isAdmin:true,role:'admin'});
+    showMsg('✅ Authenticated — loading Command Center...','ok');
+    setTimeout(()=>window.location.href='control.html',600);
+  }catch(e){
+    setBtnLoading(false);
+    const msgs={
+      'auth/configuration-not-found':'⚠️ Firebase Auth not configured. Use demo: admin / V2X@2024',
+      'auth/user-not-found':'❌ No account found with this Terminal ID.',
+      'auth/wrong-password':'❌ Incorrect Access Key.',
+      'auth/invalid-email':'❌ Invalid email format.',
+      'auth/too-many-requests':'⚠️ Too many attempts. Wait a moment.',
+      'auth/operation-not-allowed':'⚠️ Auth not enabled. Use demo: admin / V2X@2024',
+      'auth/invalid-credential':'❌ Invalid credentials.',
     };
-    showMsg('adminErr', msgs[e.code] || ('❌ ' + e.message), 'err');
-    if (isAuthConfigError(e.code)) showSetupGuide();
+    showMsg(msgs[e.code]||'❌ '+e.message,'err');
+    if(isAuthConfigError(e.code))showSetupGuide();
   }
 }
 
-// ================================================================
-//  GUEST LOGIN
-// ================================================================
-function loginUser() {
-  const name = document.getElementById('userName').value.trim();
-  clearMsg('userErr');
-  if (!name || name.length < 2) { showMsg('userErr', '⚠️ Enter a name (min 2 chars)', 'err'); return; }
-  setSession({ user: name, role: '', isAdmin: false, uid: 'guest_' + Date.now() });
-  showMsg('userErr', '✅ Welcome ' + name + '!', 'ok');
-  setTimeout(() => window.location.href = 'user-portal.html', 500);
+// ── GOOGLE SIGN-IN ────────────────────────────────────────────
+function signInWithGoogle(){
+  const btn=document.getElementById('googleBtn');
+  clearMsg();
+  btn.disabled=true;
+  btn.innerHTML='<div class="spinner" style="border-color:rgba(255,255,255,.2);border-top-color:#fff"></div> Connecting...';
+  const provider=new firebase.auth.GoogleAuthProvider();
+  provider.addScope('email');provider.addScope('profile');
+  provider.setCustomParameters({prompt:'select_account'});
+  auth.signInWithPopup(provider).then(result=>{
+    handledByPopup=true;
+    btn.innerHTML='✅ Signed in — verifying...';
+    completeGoogleSignIn(result.user,true);
+  }).catch(err=>{
+    if(err.code==='auth/popup-blocked'){
+      btn.innerHTML='⏳ Redirecting to Google...';
+      setTimeout(()=>auth.signInWithRedirect(provider),400);
+      return;
+    }
+    if(err.code==='auth/popup-closed-by-user'){resetGoogleBtn();showMsg('⚠️ Sign-in cancelled.','warn');return;}
+    if(isAuthConfigError(err.code)){showSetupGuide();showMsg('⚠️ Google Auth not set up. See guide.','warn');resetGoogleBtn();return;}
+    if(err.code==='auth/unauthorized-domain'){showMsg('⛔ Unauthorized domain. Run: firebase serve','err');resetGoogleBtn();return;}
+    showMsg('❌ '+(err.message||err.code),'err');resetGoogleBtn();
+  });
 }
 
-// ================================================================
-//  HELPERS
-// ================================================================
-function isAuthConfigError(code) {
-  return ['auth/configuration-not-found','auth/operation-not-allowed','auth/internal-error'].includes(code);
+function resetGoogleBtn(){
+  const btn=document.getElementById('googleBtn');
+  btn.disabled=false;
+  btn.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>Google Single Sign-On';
 }
-function showSetupGuide() { document.getElementById('setupGuide').classList.add('show'); }
-function hideLoader() {
-  const el = document.getElementById('authBlock');
-  if (el) { el.classList.add('gone'); setTimeout(() => el.remove && el.remove(), 500); }
-}
-function showMsg(id, msg, type) { const el = document.getElementById(id); if (!el) return; el.textContent = msg; el.className = 'msg ' + type; }
-function clearMsg(id)           { const el = document.getElementById(id); if (!el) return; el.textContent = ''; el.className = 'msg'; }
-function logoutAndReset()       { clearSession(); auth.signOut().catch(() => {}); location.reload(); }
-function switchTab(tab) {
-  const isAdmin = tab === 'admin';
-  document.getElementById('tabAdmin').className = 'tab-btn' + (isAdmin ? ' active-admin' : '');
-  document.getElementById('tabUser').className  = 'tab-btn' + (!isAdmin ? ' active-user' : '');
-  document.getElementById('panelAdmin').classList.toggle('show', isAdmin);
-  document.getElementById('panelUser').classList.toggle('show', !isAdmin);
-  clearMsg('adminErr'); clearMsg('userErr'); clearMsg('googleErr');
-}
-function togglePwd(id, eye) {
-  const inp = document.getElementById(id);
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-  document.getElementById(eye).textContent = inp.type === 'password' ? '👁' : '🙈';
-}
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  if (document.getElementById('panelAdmin').classList.contains('show')) loginAdmin(); else loginUser();
-});
 
-// ── SERVICE WORKER REGISTRATION (Fast Load + Offline Support) ────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(reg => console.log('✅ Service Worker registered:', reg))
-    .catch(e => console.error('Service Worker failed:', e));
+// ── HELPERS ───────────────────────────────────────────────────
+function isAuthConfigError(code){
+  return['auth/configuration-not-found','auth/operation-not-allowed','auth/internal-error'].includes(code);
+}
+function showSetupGuide(){document.getElementById('setupGuide').classList.add('show');}
+function hideLoader(){
+  const el=document.getElementById('authBlock');
+  if(el){el.classList.add('gone');setTimeout(()=>el.remove&&el.remove(),500);}
+}
+function showMsg(msg,type){
+  const el=document.getElementById('mainMsg');
+  el.textContent=msg;el.className='msg '+(type||'info');
+}
+function clearMsg(){const el=document.getElementById('mainMsg');el.textContent='';el.className='msg';}
+function logoutAndReset(){clearSession();auth.signOut().catch(()=>{});location.reload();}
+function togglePwd(id){
+  const inp=document.getElementById(id);
+  inp.type=inp.type==='password'?'text':'password';
+  document.getElementById('pwdEyeBtn').textContent=inp.type==='password'?'👁':'🙈';
+}
+function setBtnLoading(on){
+  const btn=document.getElementById('submitBtn');
+  const txt=document.getElementById('submitTxt');
+  btn.disabled=on;
+  if(on)txt.textContent='Authenticating...';
+  else txt.textContent='Initialize Session';
+}
+function resetAccess(){showMsg('Contact your system administrator to reset access.','info');}
+
+// Enter key
+document.addEventListener('keydown',e=>{if(e.key==='Enter')handleLogin();});
+
+// Firebase status
+function updateFirebaseStatus(){
+  db.ref('.info/connected').on('value',s=>{
+    const dot=document.getElementById('statusDot');
+    const txt=document.getElementById('statusText');
+    if(s.val()){
+      dot.style.background='var(--primary)';dot.style.boxShadow='0 0 8px var(--primary)';
+      txt.textContent='All Nodes Operational';txt.style.color='var(--primary)';
+    } else {
+      dot.style.background='#c6031a';dot.style.boxShadow='0 0 8px #c6031a';
+      txt.textContent='Firebase Disconnected';txt.style.color='#ff6070';
+    }
+  });
+}
+
+// SW
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>
 </body>
