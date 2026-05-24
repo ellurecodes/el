@@ -1,283 +1,375 @@
-<!DOCTYPE html>
-<!-- V2X Connect v7.0 | admin-preview.html | Public Admin System Stats Preview -->
+﻿<!DOCTYPE html>
+<!-- Syntrix V2X — admin-preview.html | Observer / Read-Only Mode -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>V2X Admin System — Public Preview</title>
-<meta name="description" content="V2X Connect Admin System - Live statistics and system overview.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<title>Syntrix — Observer Mode</title>
+<meta name="description" content="Syntrix V2X Observer — Live system activity in read-only mode">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#040410;--card:rgba(255,255,255,.035);--border:rgba(255,255,255,.07);--cyan:#00e5ff;--blue:#4466ff;--red:#ff2233;--green:#00dd66;--yellow:#ffaa00;--purple:#aa44ff;--text:#c8d0e8;--dim:#445566}
-html,body{height:100%;background:var(--bg)}
-body{font-family:'Inter',sans-serif;color:var(--text);overflow-x:hidden}
-.bg-mesh{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 80% 60% at 10% 30%,rgba(68,102,255,.12),transparent 60%),radial-gradient(ellipse 60% 80% at 90% 70%,rgba(0,229,255,.08),transparent 60%)}
-.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(0,229,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.015) 1px,transparent 1px);background-size:60px 60px;animation:gridmove 40s linear infinite}
-@keyframes gridmove{to{background-position:60px 60px}}
+:root{
+  --bg:#0d1518;--surface:rgba(25,33,36,.8);--border:rgba(255,255,255,.07);
+  --primary:#00e383;--secondary:#00e0ff;--alert:#c6031a;--yellow:#ffaa00;
+  --text:#dbe4e8;--text-dim:rgba(219,228,232,.55);--outline:#849586;
+}
+html,body{min-height:100vh}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* BG */
+.bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,224,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,224,255,.02) 1px,transparent 1px);background-size:48px 48px;animation:gridmove 60s linear infinite}
+@keyframes gridmove{to{background-position:48px 48px}}
+.bg-orb1{position:absolute;top:-15%;left:-10%;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,227,131,.06),transparent 70%);animation:drift1 25s ease-in-out infinite alternate}
+.bg-orb2{position:absolute;bottom:-20%;right:-5%;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,224,255,.05),transparent 70%);animation:drift2 30s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(30px,20px)}}@keyframes drift2{to{transform:translate(-40px,-30px)}}
 
 /* TOPBAR */
-.topbar{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px;padding:14px 24px;background:rgba(4,4,16,.92);border-bottom:1px solid var(--border);backdrop-filter:blur(20px)}
-.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--blue));display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 0 20px rgba(0,229,255,.3);flex-shrink:0}
-.logo-text{flex:1}
-.logo-text h1{font-family:'Orbitron';font-size:.82rem;color:#fff;letter-spacing:2px;margin-bottom:2px}
-.logo-text p{font-size:.58rem;color:var(--dim);font-family:'Share Tech Mono'}
-.topbar-actions{display:flex;gap:8px;margin-left:auto}
-.btn{padding:8px 16px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Inter';transition:.2s;text-decoration:none;display:inline-block}
-.btn:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
-.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#000;border:0;box-shadow:0 4px 15px rgba(0,229,255,.2)}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,229,255,.3)}
-.badge-demo{padding:5px 12px;border-radius:20px;font-size:.62rem;font-weight:700;background:rgba(255,170,0,.1);border:1px solid rgba(255,170,0,.25);color:var(--yellow);font-family:'Share Tech Mono';letter-spacing:1px}
+.topbar{
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;gap:12px;padding:13px 24px;
+  background:rgba(7,15,18,.95);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(16px);
+}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none}
+.brand-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,rgba(0,224,255,.15),rgba(132,149,134,.1));border:1px solid rgba(0,224,255,.2);display:flex;align-items:center;justify-content:center;font-size:.85rem}
+.brand-name{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:600;color:var(--secondary);letter-spacing:.04em}
+.observer-badge{padding:3px 10px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-size:.52rem;font-weight:600;border:1px solid rgba(132,149,134,.3);color:var(--outline);background:rgba(132,149,134,.06);letter-spacing:.06em}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.conn-dot{width:7px;height:7px;border-radius:50%;background:#445;transition:.3s}
+.conn-dot.ok{background:var(--primary);box-shadow:0 0 8px var(--primary)}
+.conn-dot.err{background:var(--alert)}
+.conn-label{font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--outline)}
+.back-btn{padding:6px 13px;border-radius:.5rem;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text-dim);font-size:.7rem;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s;text-decoration:none;display:inline-block}
+.back-btn:hover{background:rgba(255,255,255,.08)}
+.logout-btn{padding:6px 13px;border-radius:.5rem;border:1px solid rgba(0,224,255,.15);background:rgba(0,224,255,.04);color:var(--secondary);font-size:.7rem;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:.18s}
+.logout-btn:hover{background:rgba(0,224,255,.12)}
 
 /* MAIN */
 .main{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:32px 20px 60px}
 
-/* HEADER */
-.header{margin-bottom:36px;text-align:center}
-.header h2{font-family:'Orbitron';font-size:1.6rem;font-weight:900;margin-bottom:10px}
-.header p{font-size:.82rem;color:var(--dim);line-height:1.6;max-width:600px;margin:0 auto}
+.page-heading{margin-bottom:28px}
+.page-heading h1{font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:6px;letter-spacing:-.01em}
+.page-heading p{font-size:.82rem;color:var(--text-dim);line-height:1.6}
 
-/* STATS GRID */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:32px}
-.stat-card{border-radius:14px;padding:18px;background:var(--card);border:1px solid var(--border);backdrop-filter:blur(12px);position:relative;overflow:hidden;transition:.25s}
-.stat-card::before{content:'';position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,rgba(255,255,255,.03),transparent);opacity:0;transition:.3s;z-index:0}
-.stat-card:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
-.stat-card:hover::before{opacity:1}
-.stat-icon{font-size:1.8rem;margin-bottom:10px;position:relative;z-index:1}
-.stat-number{font-family:'Orbitron';font-size:1.8rem;font-weight:900;line-height:1;margin-bottom:4px;position:relative;z-index:1}
-.stat-label{font-size:.56rem;color:var(--dim);letter-spacing:1.5px;font-weight:700;text-transform:uppercase;position:relative;z-index:1}
-
-/* INFO CARDS */
-.info-section{border-radius:16px;background:var(--card);border:1px solid var(--border);backdrop-filter:blur(12px);margin-bottom:20px;overflow:hidden}
-.info-hdr{padding:16px 20px;border-bottom:1px solid var(--border);background:rgba(0,229,255,.04)}
-.info-hdr h3{font-family:'Orbitron';font-size:.78rem;letter-spacing:1px;color:var(--cyan);display:flex;align-items:center;gap:8px;margin-bottom:0}
-.info-body{padding:18px 20px;font-size:.8rem;color:var(--text);line-height:1.7}
-
-/* STATUS LIGHTS */
-.status{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;margin-bottom:10px;font-size:.76rem;font-weight:600;border:1px solid}
-.status.active{background:rgba(0,221,102,.1);border-color:rgba(0,221,102,.25);color:var(--green)}
-.status.idle{background:rgba(255,170,0,.08);border-color:rgba(255,170,0,.25);color:var(--yellow)}
-.status.offline{background:rgba(255,34,51,.08);border-color:rgba(255,34,51,.25);color:#ff7777}
-.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.status.active .status-dot{background:var(--green);box-shadow:0 0 10px rgba(0,221,102,.6);animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-
-/* EMPTY STATE */
-.empty{text-align:center;padding:40px;color:var(--dim)}
-.empty-icon{font-size:2rem;margin-bottom:12px;opacity:.3}
-.empty p{font-size:.8rem;line-height:1.6}
-
-/* SPINNER */
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .65s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* CTA SECTION */
-.cta-section{border-radius:16px;background:linear-gradient(135deg,rgba(0,229,255,.08),rgba(68,102,255,.08));border:1px solid rgba(0,229,255,.2);padding:28px;text-align:center;margin-top:40px}
-.cta-section h3{font-family:'Orbitron';font-size:.9rem;margin-bottom:10px;font-weight:900}
-.cta-section p{font-size:.78rem;color:var(--dim);margin-bottom:16px;line-height:1.6}
-.cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-
-/* FOOTER */
-.footer{position:relative;z-index:1;text-align:center;padding:24px;border-top:1px solid var(--border);color:var(--dim);font-size:.62rem;font-family:'Share Tech Mono';margin-top:40px}
-.footer a{color:var(--cyan);text-decoration:none}
-.footer a:hover{text-decoration:underline}
-
-/* MOBILE */
-@media(max-width:640px){
-  .topbar{padding:10px 14px;gap:8px}
-  .logo-text h1{font-size:.7rem}
-  .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .header h2{font-size:1.2rem}
-  .cta-btns{flex-direction:column}
-  .btn{width:100%}
+/* METRIC BAR */
+.metric-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:640px){.metric-bar{grid-template-columns:repeat(2,1fr)}}
+.metric-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:1rem;
+  padding:16px;text-align:center;
+  transition:.2s;
 }
+.metric-card:hover{border-color:rgba(255,255,255,.12)}
+.mc-ico{font-size:1.4rem;margin-bottom:8px;display:block}
+.mc-num{font-family:'JetBrains Mono',monospace;font-size:1.6rem;font-weight:600;line-height:1;margin-bottom:4px}
+.mc-label{font-family:'JetBrains Mono',monospace;font-size:.48rem;color:var(--outline);letter-spacing:.09em;text-transform:uppercase}
+
+/* SECTION */
+.section{background:var(--surface);border:1px solid var(--border);border-radius:1rem;margin-bottom:16px;overflow:hidden}
+.section-hdr{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.section-title{font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.section-body{padding:16px 18px}
+
+/* UNIT ROW */
+.unit-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:.75rem;margin-bottom:8px;border:1px solid var(--border);background:rgba(0,0,0,.2)}
+.unit-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.dot-active{background:var(--primary);box-shadow:0 0 8px var(--primary);animation:pulse 2s ease-in-out infinite}
+.dot-idle{background:#445}
+.dot-alert{background:var(--alert);box-shadow:0 0 8px var(--alert);animation:pulse .8s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.unit-name{font-family:'JetBrains Mono',monospace;font-size:.72rem;font-weight:600;flex:1}
+.unit-data{font-size:.65rem;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+.unit-badge{font-family:'JetBrains Mono',monospace;font-size:.48rem;padding:2px 8px;border-radius:8px;border:1px solid;letter-spacing:.06em;white-space:nowrap}
+.badge-active{border-color:rgba(0,227,131,.3);color:var(--primary);background:rgba(0,227,131,.08)}
+.badge-idle{border-color:rgba(132,149,134,.2);color:var(--outline);background:transparent}
+.badge-alert{border-color:rgba(198,3,26,.35);color:#ff7070;background:rgba(198,3,26,.08)}
+
+/* SIGNAL MINI */
+.signal-mini{display:flex;flex-direction:column;align-items:center;gap:3px}
+.signal-mini-bulb{width:10px;height:10px;border-radius:50%;background:#222}
+.sm-red.on{background:var(--alert);box-shadow:0 0 6px var(--alert)}
+.sm-yellow.on{background:var(--yellow);box-shadow:0 0 6px var(--yellow)}
+.sm-green.on{background:var(--primary);box-shadow:0 0 6px var(--primary)}
+
+/* EVENT LOG */
+.elog-box{max-height:220px;overflow-y:auto;font-family:'JetBrains Mono',monospace}
+.elog-box::-webkit-scrollbar{width:3px}
+.elog-box::-webkit-scrollbar-thumb{background:rgba(255,255,255,.08);border-radius:2px}
+.elog-item{display:flex;gap:10px;padding:5px 8px;border-radius:6px;font-size:.6rem;margin-bottom:2px;border-left:2px solid}
+.elog-item:hover{background:rgba(255,255,255,.03)}
+.elog-time{color:var(--outline);flex-shrink:0;min-width:55px}
+.elog-msg{color:var(--text-dim)}
+.type-v2v{border-color:var(--yellow)}.type-v2v .elog-msg{color:rgba(255,170,0,.85)}
+.type-v2i{border-color:var(--primary)}.type-v2i .elog-msg{color:rgba(0,227,131,.85)}
+.type-emergency{border-color:var(--alert)}.type-emergency .elog-msg{color:rgba(198,3,26,.85)}
+.type-info{border-color:var(--secondary)}.type-info .elog-msg{color:rgba(0,224,255,.8)}
+
+/* READ ONLY BANNER */
+.ro-banner{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;margin-bottom:20px;
+  border-radius:.75rem;
+  background:rgba(132,149,134,.06);
+  border:1px solid rgba(132,149,134,.15);
+  font-size:.72rem;color:var(--outline);
+}
+.ro-ico{font-size:.9rem}
 </style>
 </head>
 <body>
-<div class="bg-mesh"></div>
-<div class="bg-grid"></div>
 
-<!-- TOPBAR -->
+<div class="bg">
+  <div class="bg-grid"></div>
+  <div class="bg-orb1"></div>
+  <div class="bg-orb2"></div>
+</div>
+
 <div class="topbar">
-  <div class="logo-icon">📊</div>
-  <div class="logo-text">
-    <h1>ADMIN SYSTEM</h1>
-    <p>Live Statistics Preview</p>
+  <a class="brand" href="/user-portal">
+    <div class="brand-icon">⊞</div>
+    <span class="brand-name">Syntrix</span>
+  </a>
+  <span class="observer-badge">👁️ OBSERVER MODE</span>
+  <div class="topbar-right">
+    <div class="conn-dot" id="connDot"></div>
+    <span class="conn-label" id="connLabel">CONNECTING</span>
+    <a class="back-btn" href="/user-portal">← Roles</a>
+    <button class="logout-btn" onclick="logoutSession()">⏏ Sign Out</button>
   </div>
-  <span class="badge-demo">🔓 PUBLIC PREVIEW</span>
-  <a href="login.html" class="btn btn-primary">Sign In →</a>
 </div>
 
-<!-- MAIN -->
 <div class="main">
-  
-  <!-- HEADER -->
-  <div class="header">
-    <h2>V2X Admin System Overview</h2>
-    <p>Real-time statistics of the V2X Connect platform. Sign in to manage users, admins, and system settings.</p>
+
+  <div class="ro-banner">
+    <span class="ro-ico">🔒</span>
+    <div>You are in <strong>read-only observer mode</strong>. All data is live from Firebase — you cannot broadcast or modify any nodes.</div>
   </div>
 
-  <!-- LIVE STATS -->
-  <div class="stats-grid" id="statsGrid">
-    <div class="stat-card">
-      <div class="stat-icon">👑</div>
-      <div class="stat-number" id="statAdmins">—</div>
-      <div class="stat-label">Total Admins</div>
+  <div class="page-heading">
+    <h1>System Overview</h1>
+    <p>Live activity across all Syntrix V2X network nodes.</p>
+  </div>
+
+  <!-- METRIC BAR -->
+  <div class="metric-bar">
+    <div class="metric-card">
+      <span class="mc-ico">🚨</span>
+      <div class="mc-num" id="mEvActive" style="color:var(--alert)">—</div>
+      <div class="mc-label">EV Active</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon">👤</div>
-      <div class="stat-number" id="statUsers">—</div>
-      <div class="stat-label">Registered Users</div>
+    <div class="metric-card">
+      <span class="mc-ico">🚦</span>
+      <div class="mc-num" id="mSignalMode" style="color:var(--yellow);font-size:1rem;margin-top:4px">—</div>
+      <div class="mc-label">Signal Mode</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon">🚫</div>
-      <div class="stat-number" id="statBanned">—</div>
-      <div class="stat-label">Banned Users</div>
+    <div class="metric-card">
+      <span class="mc-ico">🚗</span>
+      <div class="mc-num" id="mCivicOnline" style="color:var(--secondary)">—</div>
+      <div class="mc-label">Civic Online</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon">📡</div>
-      <div class="stat-number" id="statActive">—</div>
-      <div class="stat-label">Active Now</div>
+    <div class="metric-card">
+      <span class="mc-ico">📡</span>
+      <div class="mc-num" id="mEvents" style="color:var(--primary)">0</div>
+      <div class="mc-label">Total Events</div>
     </div>
   </div>
 
-  <!-- SYSTEM STATUS -->
-  <div class="info-section">
-    <div class="info-hdr">
-      <h3>📊 System Status</h3>
+  <!-- UNIT STATUS -->
+  <div class="section">
+    <div class="section-hdr">
+      <span class="section-title" style="color:var(--alert)">🚨</span>
+      <span class="section-title">Emergency Vehicle</span>
     </div>
-    <div class="info-body">
-      <div class="status active">
-        <span class="status-dot"></span>
-        <span>Firebase Database Connected</span>
+    <div class="section-body">
+      <div class="unit-row" id="evRow">
+        <div class="unit-dot dot-idle" id="evDot"></div>
+        <div class="unit-name" id="evName">EV Unit</div>
+        <div class="unit-data" id="evData">Offline</div>
+        <span class="unit-badge badge-idle" id="evBadge">OFFLINE</span>
       </div>
-      <div class="status active">
-        <span class="status-dot"></span>
-        <span>Google Authentication Active</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr">
+      <span class="section-title" style="color:var(--yellow)">🚦</span>
+      <span class="section-title">Signal Authority</span>
+    </div>
+    <div class="section-body">
+      <div class="unit-row" id="sigRow">
+        <div class="signal-mini">
+          <div class="signal-mini-bulb sm-red" id="sbRed"></div>
+          <div class="signal-mini-bulb sm-yellow" id="sbYellow"></div>
+          <div class="signal-mini-bulb sm-green" id="sbGreen"></div>
+        </div>
+        <div class="unit-name" id="sigName">Signal Node</div>
+        <div class="unit-data" id="sigData">Offline</div>
+        <span class="unit-badge badge-idle" id="sigBadge">OFFLINE</span>
       </div>
-      <div class="status active">
-        <span class="status-dot"></span>
-        <span>Service Worker Installed</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hdr">
+      <span class="section-title" style="color:var(--secondary)">🚗</span>
+      <span class="section-title">Civic Vehicles</span>
+    </div>
+    <div class="section-body">
+      <div class="unit-row" id="v1Row">
+        <div class="unit-dot dot-idle" id="v1Dot"></div>
+        <div class="unit-name">Vehicle 1</div>
+        <div class="unit-data" id="v1Data">Offline</div>
+        <span class="unit-badge badge-idle" id="v1Badge">OFFLINE</span>
+      </div>
+      <div class="unit-row" id="v2Row">
+        <div class="unit-dot dot-idle" id="v2Dot"></div>
+        <div class="unit-name">Vehicle 2</div>
+        <div class="unit-data" id="v2Data">Offline</div>
+        <span class="unit-badge badge-idle" id="v2Badge">OFFLINE</span>
       </div>
     </div>
   </div>
 
-  <!-- FEATURES -->
-  <div class="info-section">
-    <div class="info-hdr">
-      <h3>🔐 Admin Features</h3>
+  <!-- LIVE EVENT LOG -->
+  <div class="section">
+    <div class="section-hdr">
+      <span class="section-title" style="color:var(--secondary)">📜</span>
+      <span class="section-title">Live Event Stream</span>
+      <span id="eventCount" style="font-family:'JetBrains Mono',monospace;font-size:.5rem;color:var(--outline);margin-left:auto">0 events</span>
     </div>
-    <div class="info-body">
-      <p style="margin-bottom:12px;"><strong>Full Admin Access Includes:</strong></p>
-      <ul style="margin-left:20px;color:var(--dim);font-size:.76rem;">
-        <li>✅ Invite admins by email — pre-approve accounts</li>
-        <li>✅ Promote/demote regular users instantly</li>
-        <li>✅ Ban users automatically from accessing system</li>
-        <li>✅ View all user profiles and activity</li>
-        <li>✅ Search and filter user database</li>
-        <li>✅ Real-time notification of new signups</li>
-        <li>✅ Manage pending admin invites</li>
-        <li>✅ View system statistics and metrics</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- FAQ -->
-  <div class="info-section">
-    <div class="info-hdr">
-      <h3>❓ Frequently Asked</h3>
-    </div>
-    <div class="info-body">
-      <p style="margin-bottom:12px;"><strong>Q: Can I access the full admin panel?</strong></p>
-      <p style="color:var(--dim);font-size:.76rem;margin-bottom:16px;">A: Yes! Click "Sign In" above. Use your Google account or demo credentials (admin / V2X@2024).</p>
-      
-      <p style="margin-bottom:12px;"><strong>Q: How do I invite a new admin?</strong></p>
-      <p style="color:var(--dim);font-size:.76rem;margin-bottom:16px;">A: After signing in, go to the admin panel's "Invite Admin by Email" section. Enter their email and they'll be prompted to join on their first login.</p>
-      
-      <p style="margin-bottom:12px;"><strong>Q: What if I lose admin access?</strong></p>
-      <p style="color:var(--dim);font-size:.76rem;">A: Contact the Super Admin at vishal797577@gmail.com to restore your access.</p>
-    </div>
-  </div>
-
-  <!-- CTA -->
-  <div class="cta-section">
-    <h3>🚀 Ready to Manage the System?</h3>
-    <p>Sign in with Google or use demo credentials to access the full admin panel</p>
-    <div class="cta-btns">
-      <a href="login.html" class="btn btn-primary">🔐 Sign In Account</a>
-      <a href="index.html" class="btn">← Back to Home</a>
+    <div class="section-body" style="padding:10px">
+      <div class="elog-box" id="elogBox">
+        <div class="elog-item type-info"><span class="elog-time">--:--:--</span><span class="elog-msg">Observer mode initialized — listening to Firebase...</span></div>
+      </div>
     </div>
   </div>
 
 </div>
 
-<!-- FOOTER -->
-<div class="footer">
-  V2X Connect v7.0 · Admin System Preview · <a href="index.html">Home</a> · <a href="admin.html">Full Admin Panel</a> · <a href="ADMIN_GUIDE.md">Documentation</a>
-</div>
-
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>
 
-// ── LOAD LIVE STATS ─────────────────────────────────────────
-let statData = { admins: 0, users: 0, banned: 0, active: 0 };
+// ── AUTH GUARD ─────────────────────────────────────────────────
+const sess = getSession();
+if (!sess.user) { window.location.href = 'login.html'; throw 0; }
 
-db.ref('v4/admins').once('value', snap => {
-  statData.admins = Object.keys(snap.val() || {}).length;
-  updateStats();
+// ── CONNECTIVITY ───────────────────────────────────────────────
+db.ref('.info/connected').on('value', s => {
+  document.getElementById('connDot').className = 'conn-dot ' + (s.val() ? 'ok' : 'err');
+  document.getElementById('connLabel').textContent = s.val() ? 'LIVE' : 'OFFLINE';
 });
 
-db.ref('v4/users').once('value', snap => {
-  statData.users = Object.keys(snap.val() || {}).length;
-  updateStats();
+// ── EV LISTENER ────────────────────────────────────────────────
+DB.emergency.on('value', snap => {
+  const d = snap.val();
+  const active = !!(d && d.active && d.lat != null);
+  document.getElementById('mEvActive').textContent = active ? '🔴 ON' : 'OFF';
+  document.getElementById('evDot').className = 'unit-dot ' + (active ? 'dot-alert' : 'dot-idle');
+  document.getElementById('evBadge').textContent = active ? 'ACTIVE' : 'OFFLINE';
+  document.getElementById('evBadge').className = 'unit-badge ' + (active ? 'badge-alert' : 'badge-idle');
+  if (active) {
+    document.getElementById('evName').textContent = (d.type || 'EV').toUpperCase() + ' Unit';
+    document.getElementById('evData').textContent =
+      d.lat.toFixed(5) + '°, ' + d.lng.toFixed(5) + '° · ' + (d.speed || 0) + ' km/h';
+  } else {
+    document.getElementById('evName').textContent = 'EV Unit';
+    document.getElementById('evData').textContent = 'Offline';
+  }
 });
 
-db.ref('v4/banned').once('value', snap => {
-  statData.banned = Object.keys(snap.val() || {}).length;
-  updateStats();
+// ── SIGNAL LISTENER ────────────────────────────────────────────
+DB.signal.on('value', snap => {
+  const d = snap.val();
+  const online = !!(d && d.lat != null);
+  const mode = d?.mode || 'normal';
+  const phase = d?.signalPhase || 'red';
+  const em = mode === 'emergency';
+
+  document.getElementById('sigBadge').textContent = em ? 'PREEMPTED' : online ? phase.toUpperCase() : 'OFFLINE';
+  document.getElementById('sigBadge').className = 'unit-badge ' + (em ? 'badge-alert' : online ? 'badge-active' : 'badge-idle');
+  document.getElementById('sigData').textContent = online ?
+    d.lat.toFixed(5) + '°, ' + d.lng.toFixed(5) + '°' : 'Offline';
+  document.getElementById('mSignalMode').textContent = em ? '🚨 PREEMPTED' : online ? phase.toUpperCase() : 'OFFLINE';
+
+  // Signal mini bulbs
+  ['Red','Yellow','Green'].forEach(c => document.getElementById('sb'+c).classList.remove('on'));
+  if (em || phase === 'green') document.getElementById('sbGreen').classList.add('on');
+  else if (phase === 'yellow') document.getElementById('sbYellow').classList.add('on');
+  else if (phase === 'red' || !online) document.getElementById('sbRed').classList.add('on');
 });
 
-// Count active users (updated in last 5 minutes)
-db.ref('v4/users').once('value', snap => {
-  const users = snap.val() || {};
-  const now = Date.now();
-  const fiveMinutes = 5 * 60 * 1000;
-  
-  statData.active = Object.values(users).filter(u => {
-    if (!u.lastSeen) return false;
-    return (now - new Date(u.lastSeen).getTime()) < fiveMinutes;
-  }).length;
-  
-  updateStats();
-});
-
-function updateStats() {
-  document.getElementById('statAdmins').textContent = statData.admins;
-  document.getElementById('statUsers').textContent = statData.users;
-  document.getElementById('statBanned').textContent = statData.banned;
-  document.getElementById('statActive').textContent = statData.active || '0';
+// ── VEHICLE LISTENERS ──────────────────────────────────────────
+function bindVehicle(ref, dotId, dataId, badgeId) {
+  ref.on('value', snap => {
+    const d = snap.val();
+    const online = !!(d && d.lat != null);
+    document.getElementById(dotId).className = 'unit-dot ' + (d?.alert ? 'dot-alert' : online ? 'dot-active' : 'dot-idle');
+    document.getElementById(dataId).textContent = online ?
+      d.lat.toFixed(5) + '°, ' + d.lng.toFixed(5) + '° · ±' + (d.accuracy || '?') + 'm' : 'Offline';
+    document.getElementById(badgeId).textContent = d?.alert ? 'YIELDING' : online ? 'ONLINE' : 'OFFLINE';
+    document.getElementById(badgeId).className = 'unit-badge ' + (d?.alert ? 'badge-alert' : online ? 'badge-active' : 'badge-idle');
+  });
 }
+bindVehicle(DB.vehicle1, 'v1Dot', 'v1Data', 'v1Badge');
+bindVehicle(DB.vehicle2, 'v2Dot', 'v2Data', 'v2Badge');
 
-// ── SERVICE WORKER ─────────────────────────────────────────
+// Count online civics
+let civicCount = 0;
+[DB.vehicle1, DB.vehicle2].forEach(ref => {
+  ref.on('value', snap => {
+    civicCount = 0;
+    [DB.vehicle1, DB.vehicle2].forEach(r => r.once('value', s => {
+      if (s.val() && s.val().lat != null) civicCount++;
+      document.getElementById('mCivicOnline').textContent = civicCount;
+    }));
+  });
+});
+
+// ── EVENT LOG ──────────────────────────────────────────────────
+let eventCount = 0;
+DB.events.limitToLast(50).on('child_added', snap => {
+  const d = snap.val();
+  if (!d) return;
+  eventCount++;
+  document.getElementById('mEvents').textContent = eventCount;
+  document.getElementById('eventCount').textContent = eventCount + ' events';
+
+  const box = document.getElementById('elogBox');
+  const el = document.createElement('div');
+  const typeClass = {
+    v2v: 'type-v2v', v2i: 'type-v2i',
+    emergency: 'type-emergency', info: 'type-info'
+  }[d.type] || 'type-info';
+  el.className = 'elog-item ' + typeClass;
+  const t = d.timestamp ? new Date(d.timestamp).toLocaleTimeString('en-IN',{hour12:false}) : '--:--:--';
+  el.innerHTML = `<span class="elog-time">${t}</span><span class="elog-msg">[${(d.type||'info').toUpperCase()}] ${d.message||'—'}</span>`;
+  box.prepend(el);
+  while (box.children.length > 80) box.removeChild(box.lastChild);
+});
+
+// Broadcast listener
+DB.broadcast.on('value', snap => {
+  const d = snap.val();
+  if (d && d.message) {
+    const box = document.getElementById('elogBox');
+    const el = document.createElement('div');
+    el.className = 'elog-item type-info';
+    el.innerHTML = `<span class="elog-time">${getTimeStr()}</span><span class="elog-msg">📢 BROADCAST: ${d.message}</span>`;
+    box.prepend(el);
+  }
+});
+
+// Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log('✅ Service Worker registered'))
-    .catch(e => console.error('SW failed:', e));
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
-
-// Auto-redirect after 3 minutes (optional)
-// setTimeout(() => {
-//   if (confirm('Preview session ended. Go to login?')) {
-//     window.location.href = 'login.html';
-//   }
-// }, 3 * 60 * 1000);
-
 </script>
+<script src="/ai-chat.js"></script>
 </body>
 </html>

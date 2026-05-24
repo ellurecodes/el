@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Syntrix â€” CIVIC DRIVER 2</title>
 <meta name="description" content="Syntrix CIVIC DRIVER 2 V2V Alert System">
@@ -339,7 +340,15 @@ function addLog(t,m){
 // Cleanup on exit
 window.addEventListener('beforeunload',()=>MY_DB_REF.remove());
 window.addEventListener('load',startGPS);
+
+// SW registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 </script>
+<script src="/ai-chat.js"></script>
 </body>
 </html>
 

@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- Syntrix V2X — emergency.html | Phase 2 | EV Command Panel -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Syntrix — Emergency Responder</title>
 <meta name="description" content="Syntrix Emergency Vehicle Command Panel — V2X Connect">
@@ -468,6 +469,7 @@ function toggleActivate(){
     addLog('a','🚨 EV ACTIVATED · '+evType.toUpperCase());
     logEvent('alert','Emergency vehicle activated',{type:evType});
     beep(880,.15);beep(1100,.1);
+    if(window._wakeOnActivate) window._wakeOnActivate();
   } else {
     document.getElementById('activateBtn').classList.remove('on');
     ico.textContent='🚨';lbl.textContent='ACTIVATE';sub.textContent='Tap to broadcast';
@@ -476,6 +478,7 @@ function toggleActivate(){
     DB.emergency.remove();
     addLog('s','✅ EV deactivated');
     logEvent('done','Emergency vehicle deactivated');
+    if(window._wakeOnDeactivate) window._wakeOnDeactivate();
   }
 }
 
@@ -568,7 +571,29 @@ function addLog(t,m){
   while(b.children.length>60)b.removeChild(b.lastChild);
 }
 
-window.addEventListener('load',startGPS);
+window.addEventListener('load', () => {
+  startGPS();
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
+});
+
+// Wake Lock — keep screen on while EV is active (mobile support)
+let wakeLock = null;
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+  }
+}
+async function releaseWakeLock() {
+  if (wakeLock) { try { await wakeLock.release(); wakeLock = null; } catch(e) {} }
+}
+// Called from activate/deactivate
+window._wakeOnActivate   = requestWakeLock;
+window._wakeOnDeactivate = releaseWakeLock;
+
 </script>
+<script src="/ai-chat.js"></script>
 </body>
 </html>

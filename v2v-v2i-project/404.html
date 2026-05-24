@@ -1,0 +1,104 @@
+﻿<!DOCTYPE html>
+<!-- Syntrix V2X — 404.html | Not Found -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Syntrix — 404 Not Found</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:'Inter',sans-serif;
+  background:#0d1518;
+  color:#dbe4e8;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  text-align:center;
+  overflow:hidden;
+}
+.bg-grid{
+  position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(0,227,131,.018) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,227,131,.018) 1px,transparent 1px);
+  background-size:48px 48px;
+  animation:gridmove 60s linear infinite;
+}
+@keyframes gridmove{to{background-position:48px 48px}}
+.content{position:relative;z-index:1;max-width:420px}
+.logo{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,#00e383,#00a855);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;
+  box-shadow:0 0 32px rgba(0,227,131,.25);
+  margin:0 auto 20px;
+}
+.code{
+  font-family:'JetBrains Mono',monospace;
+  font-size:5rem;font-weight:600;
+  color:#00e383;
+  line-height:1;
+  margin-bottom:8px;
+  text-shadow:0 0 40px rgba(0,227,131,.3);
+}
+h1{
+  font-size:1.1rem;font-weight:600;
+  color:#fff;margin-bottom:10px;
+}
+p{
+  font-size:.82rem;color:rgba(219,228,232,.55);
+  line-height:1.7;margin-bottom:28px;
+}
+.btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{
+  padding:10px 20px;border-radius:.75rem;
+  font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;
+  cursor:pointer;text-decoration:none;transition:.2s;
+}
+.btn-primary{
+  background:#00e383;color:#000;border:none;
+  box-shadow:0 4px 16px rgba(0,227,131,.25);
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,227,131,.35)}
+.btn-secondary{
+  background:transparent;
+  border:1px solid rgba(255,255,255,.1);
+  color:rgba(219,228,232,.7);
+}
+.btn-secondary:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.18)}
+.nav-hint{
+  margin-top:24px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:.56rem;color:rgba(132,149,134,.5);
+  letter-spacing:.06em;
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="content">
+  <div class="logo">⊞</div>
+  <div class="code">404</div>
+  <h1>Node Not Found</h1>
+  <p>The page you are looking for doesn't exist or has been moved. Please use the links below to navigate the Syntrix V2X platform.</p>
+  <div class="btns">
+    <a href="/login" class="btn btn-primary">🔐 Login Portal</a>
+    <a href="javascript:history.back()" class="btn btn-secondary">← Go Back</a>
+  </div>
+  <div class="nav-hint">
+    Available Nodes: /login · /control · /emergency · /signal · /vehicle1 · /vehicle2
+  </div>
+</div>
+<script>
+// Auto redirect to login after 10s if user doesn't click
+setTimeout(() => { window.location.replace('/login'); }, 10000);
+</script>
+<script src="/ai-chat.js"></script>
+</body>
+</html>

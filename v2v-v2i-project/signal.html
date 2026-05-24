@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- Syntrix V2X — signal.html | Phase 2 | Signal Authority Panel -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Syntrix — Signal Authority</title>
 <meta name="description" content="Syntrix Signal Authority — V2I Traffic Signal Control">
@@ -401,18 +402,42 @@ function addLog(t,m){
   while(b.children.length>60)b.removeChild(b.lastChild);
 }
 
-// Signal cycle (normal mode)
-let cyclePhase=0;
-setInterval(()=>{
-  if(currentMode==='emergency'||manualMode)return;
-  cyclePhase=(cyclePhase+1)%3;
-  const phases=['red','green','yellow'];
-  setSignalMode(phases[cyclePhase]);
-  currentMode=phases[cyclePhase];
-},cyclePhase===0?8000:cyclePhase===1?5000:2000);
+// Signal cycle (normal mode) — proper phase-based timing
+const CYCLE_DURATIONS = [8000, 5000, 2000]; // red, green, yellow
+let cyclePhase = 0;
+let cycleTimer = null;
 
-window.addEventListener('beforeunload',()=>DB.signal.remove());
-window.addEventListener('load',startGPS);
+function runSignalCycle() {
+  if (currentMode === 'emergency' || manualMode) {
+    cycleTimer = setTimeout(runSignalCycle, 500); // check again shortly
+    return;
+  }
+  // Advance to next phase
+  cyclePhase = (cyclePhase + 1) % 3;
+  const phases = ['red', 'green', 'yellow'];
+  setSignalMode(phases[cyclePhase]);
+  currentMode = phases[cyclePhase];
+  DB.signal.update({ signalPhase: phases[cyclePhase] });
+  cycleTimer = setTimeout(runSignalCycle, CYCLE_DURATIONS[cyclePhase]);
+}
+
+// Start cycle after 8 seconds (initial red hold)
+cycleTimer = setTimeout(runSignalCycle, 8000);
+
+window.addEventListener('beforeunload', () => {
+  if (cycleTimer) clearTimeout(cycleTimer);
+  DB.signal.remove();
+});
+window.addEventListener('load', startGPS);
+
+
+// SW registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 </script>
+<script src="/ai-chat.js"></script>
 </body>
 </html>

@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- Syntrix V2X — control.html | Phase 2 Admin Dashboard | Neon Citadel -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Syntrix — Admin Command Center</title>
 <meta name="description" content="Syntrix Traffic Control Admin Dashboard — Real-time V2X monitoring">
@@ -513,6 +514,7 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
     <div class="nav-section">Infrastructure</div>
     <div class="nav-item" onclick="setActiveNav(this,'users')">
       <span class="nav-icon">📡</span> Sensor Grid
+      <span class="nav-badge" id="approvalNavBadge" style="display:none;background:rgba(255,170,0,.15);color:var(--yellow);border-color:rgba(255,170,0,.3)">!</span>
     </div>
     <div class="nav-item" onclick="setActiveNav(this,'adm')">
       <span class="nav-icon">⚙️</span> System Health
@@ -686,6 +688,10 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
         <div class="metric-row"><span class="metric-lbl">EV Accuracy</span><span class="metric-val" id="aevAcc">—</span></div>
         <div class="metric-row"><span class="metric-lbl">V2V Range</span><span class="metric-val" id="aV2V" style="color:var(--yellow)">25m</span></div>
         <div class="metric-row"><span class="metric-lbl">V2I Range</span><span class="metric-val" id="aV2I" style="color:var(--secondary)">50m</span></div>
+
+        <!-- GPS Accuracy Monitor -->
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--outline);letter-spacing:.07em;text-transform:uppercase;margin:14px 0 8px;padding-top:12px;border-top:1px solid var(--border)">📡 GPS Filter Report</div>
+        <div id="gps-accuracy-container"></div>
       </div>
 
       <!-- USERS PANEL -->
@@ -697,6 +703,11 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
         <div id="adminsBox"><div style="font-size:.65rem;color:var(--text-dim)">Loading...</div></div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:.56rem;color:#ff6070;letter-spacing:.07em;text-transform:uppercase;margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--border)">Banned</div>
         <div id="bannedBox"><div style="font-size:.65rem;color:var(--text-dim)">No banned users</div></div>
+        <!-- Pending Role Approvals -->
+        <div style="font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--yellow);letter-spacing:.07em;text-transform:uppercase;margin:12px 0 8px;padding-top:10px;border-top:1px solid var(--border)">
+          ⏳ Pending Approvals <span id="pendingCount" style="display:none;padding:1px 6px;border-radius:8px;background:rgba(255,170,0,.15);border:1px solid rgba(255,170,0,.3);font-size:.5rem">0</span>
+        </div>
+        <div id="pendingBox"><div style="font-size:.65rem;color:var(--text-dim)">No pending requests</div></div>
       </div>
 
       <!-- ADMIN PANEL -->
@@ -753,11 +764,12 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
   Emergency Dispatch
 </button>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="gps-tracking.js"></script>
+<script src="gps-dashboard.js"></script>
 <script src="intersection-widget.js"></script>
 <script>
 
@@ -806,6 +818,24 @@ if(typeof window.IntersectionWidget !== 'undefined'){
     onUpdate:(state)=>db.ref('v4/config/intersection').set(state)
   });
 }
+
+// ── GPS DASHBOARD ─────────────────────────────────────────────
+let gpsDash = null;
+let evTracker = null, sigTracker = null, v1Tracker = null, v2Tracker = null;
+try {
+  if (typeof GPSAccuracyDashboard !== 'undefined' && typeof AdvancedGPSTracker !== 'undefined') {
+    gpsDash  = new GPSAccuracyDashboard('gps-accuracy-container');
+    evTracker  = new AdvancedGPSTracker({ kalmanQ:0.01, kalmanR:2 });
+    sigTracker = new AdvancedGPSTracker({ kalmanQ:0.005, kalmanR:3 });
+    v1Tracker  = new AdvancedGPSTracker({ kalmanQ:0.01, kalmanR:2 });
+    v2Tracker  = new AdvancedGPSTracker({ kalmanQ:0.01, kalmanR:2 });
+    gpsDash.registerTracker('ev',  evTracker);
+    gpsDash.registerTracker('sig', sigTracker);
+    gpsDash.registerTracker('v1',  v1Tracker);
+    gpsDash.registerTracker('v2',  v2Tracker);
+    setInterval(() => gpsDash.update(), 2000);
+  }
+} catch(e) { console.warn('GPS Dashboard init failed:', e); }
 
 // ── STATE ─────────────────────────────────────────────────────
 let evM=null,sigM=null,v1M=null,v2M=null;
@@ -897,6 +927,8 @@ DB.emergency.on('value',s=>{
 
   evLat=d.lat;evLng=d.lng;
   cntBC++;totalEvents++;
+  // Feed GPS tracker
+  if(evTracker) evTracker.processReading(d.lat, d.lng, d.accuracy||10);
   document.getElementById('sbc').textContent=cntBC;
   document.getElementById('statBroadcasts').textContent=totalEvents;
   unitsOnline.add('ev');updUnits();
@@ -952,6 +984,7 @@ DB.signal.on('value',s=>{
   if(!lat){unitsOnline.delete('sig');updUnits();return;}
   sigLat=lat;sigLng=lng;
   unitsOnline.add('sig');updUnits();
+  if(sigTracker) sigTracker.processReading(lat, lng, d.accuracy||15);
   if(!sigM)sigM=L.marker([lat,lng],{icon:sigIcon(evNear),zIndexOffset:500}).addTo(map).bindPopup('<b>🚦 Traffic Signal</b><br>V2I Receiver');
   else{sigM.setLatLng([lat,lng]);sigM.setIcon(sigIcon(evNear));}
   if(evNear){
@@ -976,6 +1009,7 @@ DB.vehicle1.on('value',s=>{
     unitsOnline.delete('v1');updUnits();return;
   }
   v1Lat=d.lat;v1Lng=d.lng;unitsOnline.add('v1');updUnits();
+  if(v1Tracker) v1Tracker.processReading(d.lat, d.lng, d.accuracy||10);
   if(!v1M)v1M=L.marker([d.lat,d.lng],{icon:carIcon('#00e0ff','V1',d.yield)}).addTo(map).bindPopup('<b>🚗 Vehicle 1</b>');
   else{v1M.setLatLng([d.lat,d.lng]);v1M.setIcon(carIcon('#00e0ff','V1',d.yield));}
   document.getElementById('v1Badge').className='uc-badge '+(d.yield?'badge-green':d.alert?'badge-red':'badge-cyan');
@@ -995,6 +1029,7 @@ DB.vehicle2.on('value',s=>{
     unitsOnline.delete('v2');updUnits();return;
   }
   v2Lat=d.lat;v2Lng=d.lng;unitsOnline.add('v2');updUnits();
+  if(v2Tracker) v2Tracker.processReading(d.lat, d.lng, d.accuracy||10);
   if(!v2M)v2M=L.marker([d.lat,d.lng],{icon:carIcon('#aa44ff','V2',d.yield)}).addTo(map).bindPopup('<b>🚙 Vehicle 2</b>');
   else{v2M.setLatLng([d.lat,d.lng]);v2M.setIcon(carIcon('#aa44ff','V2',d.yield));}
   document.getElementById('v2Badge').className='uc-badge '+(d.yield?'badge-green':d.alert?'badge-red':'badge-purple');
@@ -1035,9 +1070,6 @@ DB.admins.on('value',snap=>{
     </div>`).join('');
 });
 
-// DB.banned — initialize before use
-if(!DB.banned) DB.banned = db.ref('v4/banned');
-
 DB.banned.on('value',snap=>{
   const box=document.getElementById('bannedBox');
   if(!snap.val()){box.innerHTML='<div style="font-size:.65rem;color:var(--text-dim)">No banned users</div>';return;}
@@ -1067,6 +1099,52 @@ function renderUsers(list){
 function filterUsers(q){
   const r=q.toLowerCase();
   renderUsers(allUsers.filter(u=>(u.name||'').toLowerCase().includes(r)||(u.email||'').toLowerCase().includes(r)));
+}
+
+// ── PENDING APPROVALS ─────────────────────────────────────────
+DB.users.on('value',snap=>{
+  if(!snap.val())return;
+  const pending=[];
+  Object.entries(snap.val()).forEach(([uid,u])=>{
+    if(u.evRequested&&!u.evApproved)pending.push({uid,...u,requestType:'ev'});
+    if(u.signalRequested&&!u.signalApproved)pending.push({uid,...u,requestType:'signal'});
+  });
+  const box=document.getElementById('pendingBox');
+  const cntEl=document.getElementById('pendingCount');
+  if(!pending.length){
+    box.innerHTML='<div style="font-size:.65rem;color:var(--text-dim)">No pending requests</div>';
+    cntEl.style.display='none';
+    const navBadge=document.getElementById('approvalNavBadge');
+    if(navBadge)navBadge.style.display='none';
+    return;
+  }
+  cntEl.textContent=pending.length;cntEl.style.display='inline';
+  const navBadge=document.getElementById('approvalNavBadge');
+  if(navBadge)navBadge.style.display='inline-block';
+  box.innerHTML=pending.map(u=>`
+    <div class="user-item" style="border-color:rgba(255,170,0,.2)">
+      <div class="user-avatar" style="background:linear-gradient(135deg,var(--yellow),#b87500)">${u.requestType==='ev'?'🚨':'🚦'}</div>
+      <div class="user-meta">
+        <div class="user-name">${u.name||'?'}</div>
+        <div class="user-email">${u.email||u.uid} · wants <strong style="color:var(--yellow)">${u.requestType.toUpperCase()}</strong></div>
+      </div>
+      <div class="user-actions">
+        <button class="ua-btn ua-promote" onclick="approveRole('${u.uid}','${u.requestType}')">✅ Approve</button>
+        <button class="ua-btn ua-ban" onclick="rejectRole('${u.uid}','${u.requestType}')">✗ Reject</button>
+      </div>
+    </div>`).join('');
+});
+
+function approveRole(uid,type){
+  const key=type==='ev'?'evApproved':'signalApproved';
+  const reqKey=type==='ev'?'evRequested':'signalRequested';
+  db.ref('v4/users/'+uid).update({[key]:true,[reqKey]:false});
+  logEvent('info','Role approved: '+type.toUpperCase()+' for uid '+uid);
+}
+
+function rejectRole(uid,type){
+  const reqKey=type==='ev'?'evRequested':'signalRequested';
+  db.ref('v4/users/'+uid).update({[reqKey]:false});
 }
 
 // ── UI CONTROLS ───────────────────────────────────────────────
@@ -1191,8 +1269,10 @@ document.addEventListener('rangesUpdated',e=>{
   document.getElementById('aV2I').textContent=e.detail.v2i+'m';
 });
 
-// DB ref for banned (add if not in firebase-config)
-if(!DB.banned)DB.banned=db.ref('v4/banned');
+// SW registration
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
 
 // Firebase connection
 db.ref('.info/connected').on('value',s=>{
@@ -1201,5 +1281,6 @@ db.ref('.info/connected').on('value',s=>{
 });
 
 </script>
+<script src="/ai-chat.js"></script>
 </body>
 </html>

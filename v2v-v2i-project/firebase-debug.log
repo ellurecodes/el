@@ -189,3 +189,91 @@
 [info] i  hosting: ::1 - - [22/May/2026:15:00:25 +0000] "GET /sw.js HTTP/1.1" 200 - "http://localhost:5000/sw.js" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [22/May/2026:15:00:25 +0000] \"GET /sw.js HTTP/1.1\" 200 - \"http://localhost:5000/sw.js\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0\""}}
 [info] i  hosting: ::1 - - [22/May/2026:15:00:26 +0000] "GET /sw.js HTTP/1.1" 200 - "http://localhost:5000/sw.js" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [22/May/2026:15:00:26 +0000] \"GET /sw.js HTTP/1.1\" 200 - \"http://localhost:5000/sw.js\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0\""}}
 [info] i  hosting: ::1 - - [22/May/2026:15:00:27 +0000] "GET /sw.js HTTP/1.1" 200 - "http://localhost:5000/sw.js" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0" {"metadata":{"emulator":{"name":"hosting"},"message":"::1 - - [22/May/2026:15:00:27 +0000] \"GET /sw.js HTTP/1.1\" 200 - \"http://localhost:5000/sw.js\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 Edg/148.0.0.0\""}}
+[debug] [2026-05-23T08:38:03.495Z] ----------------------------------------------------------------------
+[debug] [2026-05-23T08:38:03.501Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\AYUSH K BHAT\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js serve --only hosting --port 5000
+[debug] [2026-05-23T08:38:03.502Z] CLI Version:   15.18.0
+[debug] [2026-05-23T08:38:03.502Z] Platform:      win32
+[debug] [2026-05-23T08:38:03.502Z] Node Version:  v25.9.0
+[debug] [2026-05-23T08:38:03.502Z] Time:          Sat May 23 2026 14:08:03 GMT+0530 (India Standard Time)
+[debug] [2026-05-23T08:38:03.502Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-23T08:38:07.496Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-23T08:38:07.496Z] > authorizing via signed-in user (vishal797577@gmail.com)
+[debug] [2026-05-23T08:38:07.497Z] [iam] checking project v2v-v2i-project for permissions ["firebase.projects.get"]
+[debug] [2026-05-23T08:38:07.498Z] Checked if tokens are valid: false, expires at: 1779465553937
+[debug] [2026-05-23T08:38:07.498Z] Checked if tokens are valid: false, expires at: 1779465553937
+[debug] [2026-05-23T08:38:07.499Z] > refreshing access token with scopes: []
+[debug] [2026-05-23T08:38:07.507Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-05-23T08:38:07.508Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-23T08:38:07.861Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-05-23T08:38:07.861Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-23T08:38:07.885Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions [none]
+[debug] [2026-05-23T08:38:07.885Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions  x-goog-user-project=v2v-v2i-project
+[debug] [2026-05-23T08:38:07.885Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-05-23T08:38:09.425Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions 200
+[debug] [2026-05-23T08:38:09.425Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-05-23T08:38:09.428Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:09.428Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:09.428Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project [none]
+[debug] [2026-05-23T08:38:09.773Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project 200
+[debug] [2026-05-23T08:38:09.773Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project {"projectNumber":"7030262076","projectId":"v2v-v2i-project","lifecycleState":"ACTIVE","name":"v2v-v2i-project","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-04-06T12:08:40.161Z"}
+[debug] [2026-05-23T08:38:09.778Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:09.778Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:09.779Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/v2v-v2i-project/sites 
+[debug] [2026-05-23T08:38:11.782Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/v2v-v2i-project/sites 200
+[debug] [2026-05-23T08:38:11.782Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/v2v-v2i-project/sites {"sites":[{"name":"projects/v2v-v2i-project/sites/v2v-v2i-project","defaultUrl":"https://v2v-v2i-project.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-05-23T08:38:11.783Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:11.783Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:11.783Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project/webApps/-/config [none]
+[debug] [2026-05-23T08:38:13.070Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project/webApps/-/config 200
+[debug] [2026-05-23T08:38:13.070Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project/webApps/-/config {"projectId":"v2v-v2i-project","appId":"1:7030262076:web:d94493e1c9411820f43639","databaseURL":"https://v2v-v2i-project-default-rtdb.firebaseio.com","storageBucket":"v2v-v2i-project.firebasestorage.app","apiKey":"AIzaSyDrjgoE9ygZ7LDU3A4i8jamjHTLHnzc-n4","authDomain":"v2v-v2i-project.firebaseapp.com","messagingSenderId":"7030262076","projectNumber":"7030262076","version":"2"}
+[debug] [2026-05-23T08:38:13.081Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:13.081Z] Checked if tokens are valid: true, expires at: 1779529086861
+[debug] [2026-05-23T08:38:13.082Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project [none]
+[debug] [2026-05-23T08:38:13.487Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project 200
+[debug] [2026-05-23T08:38:13.487Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project {"projectId":"v2v-v2i-project","projectNumber":"7030262076","displayName":"v2v-v2i-project","name":"projects/v2v-v2i-project","resources":{"hostingSite":"v2v-v2i-project","realtimeDatabaseInstance":"v2v-v2i-project-default-rtdb"},"state":"ACTIVE","etag":"1_3b1af234-a4bd-4761-a977-0024ac350c0d"}
+[info] +  hosting[v2v-v2i-project]: Local server: http://localhost:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://localhost:5000\u001b[22m\u001b[24m"}}
+[debug] [2026-05-23T14:04:09.614Z] ----------------------------------------------------------------------
+[debug] [2026-05-23T14:04:09.642Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\AYUSH K BHAT\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js serve --only hosting --port 5000
+[debug] [2026-05-23T14:04:09.644Z] CLI Version:   15.18.0
+[debug] [2026-05-23T14:04:09.645Z] Platform:      win32
+[debug] [2026-05-23T14:04:09.645Z] Node Version:  v25.9.0
+[debug] [2026-05-23T14:04:09.646Z] Time:          Sat May 23 2026 19:34:09 GMT+0530 (India Standard Time)
+[debug] [2026-05-23T14:04:09.647Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-05-23T14:04:15.626Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-23T14:04:15.627Z] > authorizing via signed-in user (vishal797577@gmail.com)
+[debug] [2026-05-23T14:04:15.627Z] [iam] checking project v2v-v2i-project for permissions ["firebase.projects.get"]
+[debug] [2026-05-23T14:04:15.629Z] Checked if tokens are valid: false, expires at: 1779529086861
+[debug] [2026-05-23T14:04:15.629Z] Checked if tokens are valid: false, expires at: 1779529086861
+[debug] [2026-05-23T14:04:15.629Z] > refreshing access token with scopes: []
+[debug] [2026-05-23T14:04:15.631Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-05-23T14:04:15.632Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-23T14:04:15.807Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-05-23T14:04:15.808Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-05-23T14:04:15.831Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions [none]
+[debug] [2026-05-23T14:04:15.831Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions  x-goog-user-project=v2v-v2i-project
+[debug] [2026-05-23T14:04:15.832Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-05-23T14:04:17.293Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions 200
+[debug] [2026-05-23T14:04:17.294Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project:testIamPermissions {"permissions":["firebase.projects.get"]}
+[debug] [2026-05-23T14:04:17.296Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:17.297Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:17.297Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project [none]
+[debug] [2026-05-23T14:04:17.592Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project 200
+[debug] [2026-05-23T14:04:17.592Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/v2v-v2i-project {"projectNumber":"7030262076","projectId":"v2v-v2i-project","lifecycleState":"ACTIVE","name":"v2v-v2i-project","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-04-06T12:08:40.161Z"}
+[debug] [2026-05-23T14:04:17.604Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:17.604Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:17.604Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/v2v-v2i-project/sites 
+[debug] [2026-05-23T14:04:21.943Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/v2v-v2i-project/sites 200
+[debug] [2026-05-23T14:04:21.944Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/v2v-v2i-project/sites {"sites":[{"name":"projects/v2v-v2i-project/sites/v2v-v2i-project","defaultUrl":"https://v2v-v2i-project.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2026-05-23T14:04:21.945Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:21.945Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:21.945Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project/webApps/-/config [none]
+[debug] [2026-05-23T14:04:22.830Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project/webApps/-/config 200
+[debug] [2026-05-23T14:04:22.831Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project/webApps/-/config {"projectId":"v2v-v2i-project","appId":"1:7030262076:web:d94493e1c9411820f43639","databaseURL":"https://v2v-v2i-project-default-rtdb.firebaseio.com","storageBucket":"v2v-v2i-project.firebasestorage.app","apiKey":"AIzaSyDrjgoE9ygZ7LDU3A4i8jamjHTLHnzc-n4","authDomain":"v2v-v2i-project.firebaseapp.com","messagingSenderId":"7030262076","projectNumber":"7030262076","version":"2"}
+[debug] [2026-05-23T14:04:22.853Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:22.853Z] Checked if tokens are valid: true, expires at: 1779548654809
+[debug] [2026-05-23T14:04:22.855Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project [none]
+[debug] [2026-05-23T14:04:23.214Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project 200
+[debug] [2026-05-23T14:04:23.215Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/v2v-v2i-project {"projectId":"v2v-v2i-project","projectNumber":"7030262076","displayName":"v2v-v2i-project","name":"projects/v2v-v2i-project","resources":{"hostingSite":"v2v-v2i-project","realtimeDatabaseInstance":"v2v-v2i-project-default-rtdb"},"state":"ACTIVE","etag":"1_3b1af234-a4bd-4761-a977-0024ac350c0d"}
+[info] +  hosting[v2v-v2i-project]: Local server: http://localhost:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://localhost:5000\u001b[22m\u001b[24m"}}

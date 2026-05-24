@@ -59,15 +59,17 @@ db.ref('v4/config').once('value', snap => {
 
 // ── DATABASE REFERENCES ────────────────────────────────────────
 const DB = {
-  emergency: db.ref('v4/emergency'),
-  signal:    db.ref('v4/signal'),
-  vehicle1:  db.ref('v4/vehicle1'),
-  vehicle2:  db.ref('v4/vehicle2'),
-  events:    db.ref('v4/events'),
-  sessions:  db.ref('v4/sessions'),
-  config:    db.ref('v4/config'),
-  admins:    db.ref('v4/admins'),   // NEW: admin list
-  users:     db.ref('v4/users'),    // NEW: all users
+  emergency:  db.ref('v4/emergency'),
+  signal:     db.ref('v4/signal'),
+  vehicle1:   db.ref('v4/vehicle1'),
+  vehicle2:   db.ref('v4/vehicle2'),
+  events:     db.ref('v4/events'),
+  sessions:   db.ref('v4/sessions'),
+  config:     db.ref('v4/config'),
+  admins:     db.ref('v4/admins'),
+  users:      db.ref('v4/users'),
+  banned:     db.ref('v4/banned'),      // ← added
+  broadcast:  db.ref('v4/broadcast'),   // ← added
 };
 
 // ── DEFAULT POSITIONS (Silk Board Junction, Bangalore) ─────────
@@ -406,7 +408,17 @@ function logoutSession() {
 
 /** Role → URL mapping */
 function getRoleUrl(role) {
-  return { ev:'emergency.html', signal:'signal.html', vehicle1:'vehicle1.html', vehicle2:'vehicle2.html', admin:'control.html' }[role] || 'user-portal.html';
+  const map = {
+    ev:        'emergency.html',
+    emergency: 'emergency.html',
+    signal:    'signal.html',
+    vehicle1:  'vehicle1.html',
+    vehicle2:  'vehicle2.html',
+    civic:     'vehicle1.html',
+    admin:     'control.html',
+    observer:  'admin-preview.html',
+  };
+  return map[role] || 'user-portal.html';
 }
 
 console.log('🔥 V2X Connect v7.0 | DB-Admin | Google Auth | Vincenty WGS-84 | Kalman GPS | /v4/');

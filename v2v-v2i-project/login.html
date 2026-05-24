@@ -1,8 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- Syntrix V2X — login.html | Phase 2 | Neon Citadel Design -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Syntrix — Secure Login</title>
 <meta name="description" content="Secure access portal for Syntrix Traffic Control and Emergency Infrastructure.">
@@ -798,8 +799,18 @@ function updateFirebaseStatus(){
 
 // SW
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.register('/sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => {
+      const newWorker = reg.installing;
+      newWorker.addEventListener('statechange', () => {
+        if(newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          newWorker.postMessage({type:'SKIP_WAITING'});
+        }
+      });
+    });
+  }).catch(()=>{});
 }
 </script>
+<script src="/ai-chat.js"></script>
 </body>
 </html>
