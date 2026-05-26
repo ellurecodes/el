@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- Syntrix V2X — signal.html | Phase 2 | Signal Authority Panel -->
 <html lang="en">
 <head>
@@ -433,6 +433,13 @@ window.addEventListener('load', startGPS);
 
 // SW registration
 if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });

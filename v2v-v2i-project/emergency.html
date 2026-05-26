@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- Syntrix V2X — emergency.html | Phase 2 | EV Command Panel -->
 <html lang="en">
 <head>
@@ -575,6 +575,13 @@ window.addEventListener('load', () => {
   startGPS();
   // Register service worker
   if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 });

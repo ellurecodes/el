@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- Syntrix V2X — control.html | Phase 2 Admin Dashboard | Neon Citadel -->
 <html lang="en">
 <head>
@@ -1271,6 +1271,13 @@ document.addEventListener('rangesUpdated',e=>{
 
 // SW registration
 if('serviceWorker' in navigator){
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
   navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 

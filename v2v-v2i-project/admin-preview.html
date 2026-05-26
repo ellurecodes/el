@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- Syntrix V2X — admin-preview.html | Observer / Read-Only Mode -->
 <html lang="en">
 <head>
@@ -367,6 +367,13 @@ DB.broadcast.on('value', snap => {
 
 // Service Worker
 if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 </script>

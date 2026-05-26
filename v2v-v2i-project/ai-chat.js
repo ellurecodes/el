@@ -1,610 +1,431 @@
 // ================================================================
-//  Syntrix V2X — AI ASSISTANT WIDGET
-//  Powered by Google Gemini 2.0 Flash (Free Tier)
-//
-//  Drop this script into any page and it auto-injects a fully
-//  functional AI chat widget with Syntrix branding.
-//  ── Place your Gemini API key in the CONFIG below ──
+//  Syntrix V2X — AI ASSISTANT WIDGET v2.0
+//  Powered by Google Gemini 1.5 Flash (Free Tier)
+//  Self-contained · Auto-injects into any page
 // ================================================================
 
 (function () {
   'use strict';
 
-  // ── CONFIG ──────────────────────────────────────────────────
-  const CONFIG = {
-    apiKey: 'AIzaSyAyeQpH0_wVzY_iYhOb555mDY2s2U-aZ4M',        // Gemini API Key
-    model: 'gemini-2.0-flash',            // Free tier model
-    maxHistory: 20,                        // Chat turns to keep
-    storageKey: 'syntrix_ai_chat',
-  };
-
-  // ── SYSTEM CONTEXT ─────────────────────────────────────────
-  const SYSTEM_PROMPT = `You are Syntrix AI, a friendly and knowledgeable assistant embedded in the Syntrix V2X Traffic Management & Emergency Vehicle Clearance System.
-
-You are like a helpful friend — warm, casual, smart, and direct. You can answer questions about ANYTHING — both about this platform and general topics like technology, science, weather, coding, math, general knowledge, life advice, etc.
-
-## About the Syntrix V2X Platform:
-Syntrix is a real-time Vehicle-to-Vehicle (V2V) and Vehicle-to-Infrastructure (V2I) communication system built for smart city traffic management. It uses Firebase Realtime Database, GPS, Kalman filtering, and the Vincenty formula.
-
-## Pages / Portals:
-- **Login** (/login): Entry point. Role-based login. Roles: City Administrator, Emergency Responder, Civic Driver, Signal Authority.
-- **Control Center** (/control): Admin-only dashboard. Shows live Leaflet map with all vehicle & signal markers, V2V/V2I circles, route history polyline, GPS accuracy dashboard, user management, pending role approvals, analytics, system broadcast.
-- **Emergency Responder** (/emergency): For ambulance/fire/police drivers. Activate GPS broadcast, transmit live position to Firebase, see signal status, V2V nearby vehicle count. Screen stays on via Wake Lock API.
-- **Signal Authority** (/signal): For traffic signal operators. Receives V2I commands from EV. Signal auto-preempts to GREEN when EV within 50m range. Normal cycle: RED 8s → GREEN 5s → YELLOW 2s.
-- **Civic Driver** (/vehicle1, /vehicle2): Regular drivers. Receive V2V yield alerts when EV approaches within 25m. Shows which side to yield.
-- **User Portal** (/user-portal): Role selection after login. Emergency Responder & Signal Authority require admin approval. Civic Driver & Observer are instant access.
-- **Observer Mode** (/admin-preview): Read-only live view of all nodes. No broadcasting.
-
-## Key Technical Concepts:
-- **V2V**: Vehicle-to-Vehicle — EV broadcasts GPS to civic vehicles. If within 25m, they get yield alert.
-- **V2I**: Vehicle-to-Infrastructure — EV's GPS triggers signal preemption if within 50m. Signal turns GREEN.
-- **Kalman Filter**: Smooths GPS noise for accurate positioning.
-- **Vincenty Formula**: Precise distance calculation on WGS-84 ellipsoid.
-- **Firebase Realtime DB**: All live data flows through /v4/ node. Key paths: /v4/emergency, /v4/signal, /v4/vehicle1, /v4/vehicle2, /v4/users, /v4/admins, /v4/banned.
-- **Auth**: Google SSO + email/password. Super Admin: vishal797577@gmail.com. Fallback: admin/V2X@2024.
-- **Role Approval**: Admins approve EV and Signal roles via the Control Center → Users panel → Pending Approvals section.
-
-## Current Page Context:
-${window.location.pathname}
-
-Always be helpful, friendly and conversational. Use emojis occasionally. Keep responses concise unless the user wants detail. If asked about the current page, explain what it does. Format code in backticks.`;
-
-  // ── STYLES ──────────────────────────────────────────────────
-  const CSS = `
-#syntrix-ai-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  z-index: 99999;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #00e383, #00a855);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0,227,131,.4), 0 0 0 0 rgba(0,227,131,.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  transition: transform .2s, box-shadow .2s;
-  animation: aiPulse 3s ease-in-out infinite;
-}
-#syntrix-ai-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 28px rgba(0,227,131,.55);
-}
-@keyframes aiPulse {
-  0%,100% { box-shadow: 0 4px 20px rgba(0,227,131,.4), 0 0 0 0 rgba(0,227,131,.25); }
-  50% { box-shadow: 0 4px 20px rgba(0,227,131,.4), 0 0 0 10px rgba(0,227,131,0); }
-}
-#syntrix-ai-badge {
-  position: absolute;
-  top: -3px; right: -3px;
-  width: 14px; height: 14px;
-  background: #c6031a;
-  border-radius: 50%;
-  border: 2px solid #0d1518;
-  display: none;
-}
-#syntrix-ai-panel {
-  position: fixed;
-  bottom: 88px;
-  right: 24px;
-  z-index: 99998;
-  width: 360px;
-  max-height: 560px;
-  display: flex;
-  flex-direction: column;
-  border-radius: 1.25rem;
-  overflow: hidden;
-  background: rgba(10, 18, 22, 0.97);
-  border: 1px solid rgba(0,227,131,.18);
-  box-shadow: 0 24px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.04);
-  backdrop-filter: blur(20px);
-  transform-origin: bottom right;
-  transform: scale(0.85);
-  opacity: 0;
-  pointer-events: none;
-  transition: transform .22s cubic-bezier(.34,1.56,.64,1), opacity .18s;
-}
-#syntrix-ai-panel.open {
-  transform: scale(1);
-  opacity: 1;
-  pointer-events: all;
-}
-@media (max-width: 440px) {
-  #syntrix-ai-panel {
-    width: calc(100vw - 16px);
-    right: 8px;
-    bottom: 82px;
-    max-height: 75vh;
+  // ── CONFIG ────────────────────────────────────────────────────
+  const DEFAULT_GEMINI_KEY  = 'AIzaSyAyeQpH0_wVzY_iYhOb555mDY2s2U-aZ4M';
+  const GEMINI_MODEL = 'gemini-2.5-flash'; // Updated from deprecated 1.5 to 2.5 Flash
+  function getGeminiUrl() {
+    const key = localStorage.getItem('v2x_gemini_key') || DEFAULT_GEMINI_KEY;
+    return 'https://generativelanguage.googleapis.com/v1beta/models/'
+         + GEMINI_MODEL + ':generateContent?key=' + key;
   }
+  const MAX_TURNS   = 16;
+
+  // ── PAGE CONTEXT (evaluated at runtime, not module load) ──────
+  function getSystemPrompt() {
+    const page = (window.location.pathname || '/login').replace(/\//g, '').replace('.html','') || 'login';
+    return `You are Syntrix AI — a friendly, smart, and helpful AI assistant built into the Syntrix V2X Traffic & Emergency Vehicle Clearance System.
+
+You are like a knowledgeable friend: warm, casual, direct, and helpful. Answer ANYTHING — platform questions, general knowledge, coding, science, math, advice, etc.
+
+## The Syntrix V2X Platform:
+A real-time V2V (Vehicle-to-Vehicle) and V2I (Vehicle-to-Infrastructure) smart city system built with Firebase Realtime DB, real GPS, Kalman filtering, and Vincenty distance math.
+
+## Portals:
+- Login (/login): Role-based entry. Roles: City Admin, Emergency Responder, Civic Driver, Signal Authority.
+- Control Center (/control): Admin dashboard — live Leaflet map, all unit markers, V2V/V2I range circles, route history, GPS accuracy dashboard, user management, pending role approvals, system broadcast.
+- Emergency (/emergency): EV driver — activate GPS broadcast, siren strip, V2I signal preemption tracking, V2V nearby vehicles. Wake Lock keeps screen on.
+- Signal (/signal): Signal operator — receives V2I preemption from EV within 50m. Normal cycle: RED 8s → GREEN 5s → YELLOW 2s.
+- Vehicle1 & Vehicle2 (/vehicle1, /vehicle2): Civic drivers — get V2V yield alerts when EV within 25m.
+- User Portal (/user-portal): Choose your role. EV & Signal roles need admin approval first.
+- Observer (/admin-preview): Read-only live view of all nodes.
+- 404 (/404): Error page, auto-redirects to login in 10s.
+
+## Tech Stack:
+- Firebase Realtime DB at /v4/ node
+- Google Auth + email/password + fallback admin (admin / V2X@2024)
+- Kalman Filter for GPS smoothing
+- Vincenty WGS-84 for precise distances
+- Leaflet maps with CartoDB dark tiles
+- Service Worker v2.2 for offline support
+- V2V range: 25m | V2I range: 50m
+
+## Current page the user is on: /${page}
+
+Respond concisely. Use emojis occasionally. Format code in backticks. Be warm and conversational.`;
+  }
+
+  // ── QUICK CHIPS BY PAGE ────────────────────────────────────────
+  function getChips() {
+    const page = (window.location.pathname || '/').replace(/\//g,'').replace('.html','');
+    const defaults = ['What is V2X?','How do I log in?','Explain V2I preemption','What is Kalman filter?','Show me all portals'];
+    const pageChips = {
+      control:   ['How to approve EV role?','What are the map circles?','How to ban a user?','What is route history?'],
+      emergency: ['How to activate broadcast?','What is V2V alert?','Why use Wake Lock?','Kalman filter accuracy?'],
+      signal:    ['When does signal go green?','What is V2I?','Normal cycle timing?','How to override manually?'],
+      vehicle1:  ['What is V2V yield?','Which side to move to?','How close is danger zone?'],
+      vehicle2:  ['What is V2V yield?','How far is danger zone?','Difference from vehicle1?'],
+      'user-portal': ['Which role needs approval?','How long does approval take?','What is observer mode?'],
+    };
+    return pageChips[page] || defaults;
+  }
+
+  // ── CSS ───────────────────────────────────────────────────────
+  const CSS = `
+#sai-btn {
+  position:fixed;bottom:24px;right:24px;z-index:2147483647;
+  width:54px;height:54px;border-radius:50%;
+  background:linear-gradient(135deg,#00e383,#009955);
+  border:none;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,227,131,.45);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;transition:transform .2s,box-shadow .2s;
+  animation:saiPulse 3s ease-in-out infinite;
+  font-family:sans-serif;
 }
-.ai-panel-header {
-  padding: 13px 16px;
-  background: linear-gradient(135deg, rgba(0,227,131,.1), rgba(0,224,255,.06));
-  border-bottom: 1px solid rgba(0,227,131,.12);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
+#sai-btn:hover{transform:scale(1.12);box-shadow:0 6px 30px rgba(0,227,131,.6)}
+@keyframes saiPulse{
+  0%,100%{box-shadow:0 4px 20px rgba(0,227,131,.45),0 0 0 0 rgba(0,227,131,.2)}
+  50%{box-shadow:0 4px 20px rgba(0,227,131,.45),0 0 0 12px rgba(0,227,131,0)}
 }
-.ai-avatar {
-  width: 34px; height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #00e383, #00a855);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-  box-shadow: 0 0 14px rgba(0,227,131,.3);
+#sai-notif{
+  position:absolute;top:-2px;right:-2px;
+  width:14px;height:14px;border-radius:50%;
+  background:#c6031a;border:2px solid #0d1518;display:none;
 }
-.ai-header-info { flex: 1; }
-.ai-header-name {
-  font-family: 'JetBrains Mono', 'Courier New', monospace;
-  font-size: .78rem;
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: .04em;
+#sai-panel{
+  position:fixed;bottom:90px;right:24px;z-index:2147483646;
+  width:370px;max-height:580px;display:flex;flex-direction:column;
+  border-radius:20px;overflow:hidden;
+  background:rgba(8,16,20,.98);
+  border:1px solid rgba(0,227,131,.2);
+  box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04);
+  backdrop-filter:blur(24px);
+  transform-origin:bottom right;
+  transform:scale(.82) translateY(8px);
+  opacity:0;pointer-events:none;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+  font-family:'Inter','Segoe UI',sans-serif;
 }
-.ai-header-status {
-  font-size: .58rem;
-  color: rgba(0,227,131,.8);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 1px;
-  font-family: 'JetBrains Mono', monospace;
+#sai-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
+@media(max-width:430px){
+  #sai-panel{width:calc(100vw - 12px);right:6px;bottom:86px;max-height:72vh}
 }
-.ai-status-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: #00e383;
-  animation: aiDotPulse 2s ease-in-out infinite;
+.sai-hdr{
+  padding:14px 16px;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(0,227,131,.1),rgba(0,224,255,.05));
+  border-bottom:1px solid rgba(0,227,131,.12);
+  display:flex;align-items:center;gap:11px;
 }
-@keyframes aiDotPulse { 0%,100%{opacity:1}50%{opacity:.4} }
-.ai-close-btn {
-  background: rgba(255,255,255,.07);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: 8px;
-  width: 28px; height: 28px;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: rgba(219,228,232,.6);
-  font-size: .9rem;
-  transition: .15s;
+.sai-logo{
+  width:36px;height:36px;border-radius:10px;flex-shrink:0;
+  background:linear-gradient(135deg,#00e383,#009955);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;box-shadow:0 0 16px rgba(0,227,131,.35);
 }
-.ai-close-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
-.ai-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 14px 14px 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  scroll-behavior: smooth;
+.sai-hdr-info{flex:1}
+.sai-name{
+  font-size:.82rem;font-weight:700;color:#fff;
+  font-family:'JetBrains Mono','Courier New',monospace;letter-spacing:.05em;
 }
-.ai-messages::-webkit-scrollbar { width: 3px; }
-.ai-messages::-webkit-scrollbar-thumb { background: rgba(0,227,131,.2); border-radius: 2px; }
-.ai-msg {
-  display: flex;
-  gap: 8px;
-  animation: msgSlideIn .2s ease;
+.sai-status{
+  font-size:.58rem;color:rgba(0,227,131,.8);
+  display:flex;align-items:center;gap:5px;margin-top:2px;
+  font-family:'JetBrains Mono',monospace;
 }
-@keyframes msgSlideIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-.ai-msg.user { flex-direction: row-reverse; }
-.ai-msg-avatar {
-  width: 26px; height: 26px;
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .75rem;
-  flex-shrink: 0;
-  margin-top: 2px;
+.sai-dot{
+  width:6px;height:6px;border-radius:50%;background:#00e383;
+  animation:saiDot 2s ease-in-out infinite;
 }
-.ai-msg.assistant .ai-msg-avatar {
-  background: linear-gradient(135deg, #00e383, #00a855);
+@keyframes saiDot{0%,100%{opacity:1}50%{opacity:.3}}
+.sai-hdr-btns{display:flex;gap:5px}
+.sai-hdr-btn{
+  width:28px;height:28px;border-radius:8px;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  cursor:pointer;color:rgba(219,228,232,.6);font-size:.8rem;
+  display:flex;align-items:center;justify-content:center;transition:.15s;
 }
-.ai-msg.user .ai-msg-avatar {
-  background: rgba(0,224,255,.12);
-  border: 1px solid rgba(0,224,255,.2);
+.sai-hdr-btn:hover{background:rgba(255,255,255,.12);color:#fff}
+.sai-msgs{
+  flex:1;overflow-y:auto;padding:14px 12px 6px;
+  display:flex;flex-direction:column;gap:10px;
+  scroll-behavior:smooth;
 }
-.ai-msg-bubble {
-  max-width: 78%;
-  padding: 9px 13px;
-  border-radius: 1rem;
-  font-size: .78rem;
-  line-height: 1.65;
-  word-break: break-word;
+.sai-msgs::-webkit-scrollbar{width:3px}
+.sai-msgs::-webkit-scrollbar-thumb{background:rgba(0,227,131,.18);border-radius:2px}
+.sai-msg{display:flex;gap:8px;animation:msgIn .22s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.sai-msg.user{flex-direction:row-reverse}
+.sai-av{
+  width:28px;height:28px;border-radius:9px;flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;font-size:.82rem;
 }
-.ai-msg.assistant .ai-msg-bubble {
-  background: rgba(25,33,36,.9);
-  border: 1px solid rgba(255,255,255,.07);
-  color: #dbe4e8;
-  border-radius: 4px 1rem 1rem 1rem;
+.sai-msg.assistant .sai-av{background:linear-gradient(135deg,#00e383,#009955)}
+.sai-msg.user .sai-av{background:rgba(0,224,255,.1);border:1px solid rgba(0,224,255,.2)}
+.sai-bubble{
+  max-width:80%;padding:10px 14px;font-size:.78rem;line-height:1.68;word-break:break-word;
 }
-.ai-msg.user .ai-msg-bubble {
-  background: linear-gradient(135deg, rgba(0,227,131,.15), rgba(0,227,131,.08));
-  border: 1px solid rgba(0,227,131,.2);
-  color: #fff;
-  border-radius: 1rem 4px 1rem 1rem;
-  text-align: right;
+.sai-msg.assistant .sai-bubble{
+  background:rgba(22,30,35,.95);border:1px solid rgba(255,255,255,.07);
+  color:#dbe4e8;border-radius:3px 14px 14px 14px;
 }
-.ai-msg-bubble code {
-  background: rgba(0,0,0,.4);
-  border-radius: 4px;
-  padding: 1px 5px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: .72rem;
-  color: #00e383;
+.sai-msg.user .sai-bubble{
+  background:linear-gradient(135deg,rgba(0,227,131,.18),rgba(0,180,100,.1));
+  border:1px solid rgba(0,227,131,.22);color:#fff;
+  border-radius:14px 3px 14px 14px;text-align:right;
 }
-.ai-msg-bubble strong { color: #00e383; }
-.ai-msg-bubble em { color: rgba(0,224,255,.9); font-style: italic; }
-.ai-typing {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 12px;
-  background: rgba(25,33,36,.9);
-  border: 1px solid rgba(255,255,255,.07);
-  border-radius: 4px 1rem 1rem 1rem;
-  width: fit-content;
+.sai-bubble code{
+  background:rgba(0,0,0,.45);border-radius:4px;
+  padding:1px 6px;font-family:'JetBrains Mono','Courier New',monospace;
+  font-size:.72rem;color:#00e383;
 }
-.ai-typing span {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: #00e383;
-  animation: typingBounce 1.2s ease-in-out infinite;
+.sai-bubble strong{color:#00e383}
+.sai-bubble em{color:rgba(0,224,255,.9);font-style:italic}
+.sai-bubble a{color:#00e0ff;text-decoration:underline}
+.sai-bubble ul{margin:6px 0 0 16px}
+.sai-bubble li{margin-bottom:3px}
+.sai-typing{
+  display:flex;align-items:center;gap:5px;
+  padding:10px 14px;border-radius:3px 14px 14px 14px;
+  background:rgba(22,30,35,.95);border:1px solid rgba(255,255,255,.07);width:fit-content;
 }
-.ai-typing span:nth-child(2) { animation-delay: .2s; }
-.ai-typing span:nth-child(3) { animation-delay: .4s; }
-@keyframes typingBounce {
-  0%,60%,100% { transform: translateY(0); opacity:.4; }
-  30% { transform: translateY(-5px); opacity:1; }
+.sai-typing span{
+  width:7px;height:7px;border-radius:50%;background:#00e383;
+  animation:saiTyping 1.3s ease-in-out infinite;
 }
-.ai-input-area {
-  padding: 10px 12px;
-  border-top: 1px solid rgba(255,255,255,.07);
-  display: flex;
-  gap: 8px;
-  align-items: flex-end;
-  flex-shrink: 0;
-  background: rgba(7,15,18,.8);
+.sai-typing span:nth-child(2){animation-delay:.18s}
+.sai-typing span:nth-child(3){animation-delay:.36s}
+@keyframes saiTyping{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-6px);opacity:1}}
+.sai-chips{
+  padding:6px 12px 8px;display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;
+  border-top:1px solid rgba(255,255,255,.04);
 }
-.ai-input {
-  flex: 1;
-  background: rgba(25,33,36,.9);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: .75rem;
-  color: #dbe4e8;
-  font-family: 'Inter', sans-serif;
-  font-size: .78rem;
-  padding: 9px 13px;
-  resize: none;
-  outline: none;
-  max-height: 100px;
-  min-height: 38px;
-  transition: border-color .18s;
-  line-height: 1.5;
+.sai-chip{
+  padding:4px 11px;border-radius:20px;cursor:pointer;white-space:nowrap;
+  background:rgba(0,227,131,.07);border:1px solid rgba(0,227,131,.16);
+  color:rgba(0,227,131,.8);font-size:.58rem;
+  font-family:'JetBrains Mono','Courier New',monospace;transition:.15s;
 }
-.ai-input::placeholder { color: rgba(132,149,134,.5); }
-.ai-input:focus { border-color: rgba(0,227,131,.35); }
-.ai-send-btn {
-  width: 36px; height: 36px;
-  border-radius: .75rem;
-  background: linear-gradient(135deg, #00e383, #00a855);
-  border: none;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: .9rem;
-  transition: .18s;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0,227,131,.25);
+.sai-chip:hover{background:rgba(0,227,131,.18);color:#00e383;border-color:rgba(0,227,131,.35)}
+.sai-input-row{
+  padding:10px 12px;border-top:1px solid rgba(255,255,255,.07);
+  display:flex;gap:8px;align-items:flex-end;flex-shrink:0;
+  background:rgba(5,12,16,.85);
 }
-.ai-send-btn:hover { transform: scale(1.08); }
-.ai-send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
-.ai-quick-chips {
-  padding: 4px 12px 8px;
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
+.sai-input{
+  flex:1;background:rgba(22,30,35,.95);border:1px solid rgba(255,255,255,.1);
+  border-radius:12px;color:#dbe4e8;font-size:.78rem;
+  padding:9px 13px;resize:none;outline:none;
+  max-height:100px;min-height:38px;line-height:1.5;
+  font-family:'Inter','Segoe UI',sans-serif;transition:border-color .18s;
 }
-.ai-chip {
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: rgba(0,227,131,.08);
-  border: 1px solid rgba(0,227,131,.18);
-  color: rgba(0,227,131,.85);
-  font-size: .6rem;
-  font-family: 'JetBrains Mono', monospace;
-  cursor: pointer;
-  transition: .15s;
-  white-space: nowrap;
+.sai-input::placeholder{color:rgba(132,149,134,.45)}
+.sai-input:focus{border-color:rgba(0,227,131,.4)}
+.sai-send{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,#00e383,#009955);
+  border:none;cursor:pointer;font-size:.9rem;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(0,227,131,.3);transition:.18s;color:#000;
 }
-.ai-chip:hover { background: rgba(0,227,131,.18); color: #00e383; }
-.ai-error-msg {
-  color: #ff7070;
-  font-size: .72rem;
-  text-align: center;
-  padding: 6px 10px;
-  background: rgba(198,3,26,.08);
-  border-radius: .5rem;
-  margin: 4px 0;
+.sai-send:hover{transform:scale(1.08)}
+.sai-send:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.sai-err{
+  font-size:.7rem;color:#ff7070;background:rgba(198,3,26,.1);
+  border:1px solid rgba(198,3,26,.2);border-radius:8px;
+  padding:7px 12px;margin:2px 0;text-align:center;
 }
-.ai-key-prompt {
-  padding: 16px;
-  text-align: center;
-  font-size: .75rem;
-  color: rgba(219,228,232,.6);
-  font-family: 'Inter', sans-serif;
-  line-height: 1.7;
+.sai-clear-link{
+  font-size:.58rem;color:rgba(132,149,134,.5);cursor:pointer;
+  text-align:center;padding:4px;transition:.15s;display:block;
 }
-.ai-key-prompt a {
-  color: #00e383;
-  text-decoration: none;
-  font-weight: 600;
-}
-.ai-key-input-wrap { margin-top: 10px; display: flex; gap: 6px; }
-.ai-key-input {
-  flex: 1;
-  background: rgba(25,33,36,.9);
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: .5rem;
-  color: #dbe4e8;
-  font-size: .7rem;
-  padding: 7px 10px;
-  outline: none;
-  font-family: 'JetBrains Mono', monospace;
-}
-.ai-key-input:focus { border-color: rgba(0,227,131,.4); }
-.ai-key-save-btn {
-  padding: 7px 14px;
-  background: #00e383;
-  color: #000;
-  border: none;
-  border-radius: .5rem;
-  font-size: .7rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
+.sai-clear-link:hover{color:rgba(0,227,131,.7)}
 `;
 
-  // ── QUICK QUESTIONS ─────────────────────────────────────────
-  const QUICK_CHIPS = [
-    'What is V2X?',
-    'How do I log in?',
-    'What is V2I preemption?',
-    'How does the EV panel work?',
-    'Explain Kalman filter',
-  ];
+  // ── STATE ─────────────────────────────────────────────────────
+  let open = false;
+  let busy = false;
+  let history = [];
+  let greeted = false;
 
-  // ── STATE ───────────────────────────────────────────────────
-  let isOpen = false;
-  let isLoading = false;
-  let chatHistory = [];
-  let apiKey = CONFIG.apiKey;
+  // ── INIT ──────────────────────────────────────────────────────
+  function init() {
+    injectCSS();
+    buildDOM();
+    bindEvents();
+    console.log('%c✅ Syntrix AI Widget v2.0', 'color:#00e383;font-weight:bold');
+  }
 
-  // ── INJECT CSS ──────────────────────────────────────────────
-  function injectStyles() {
+  function injectCSS() {
     const s = document.createElement('style');
+    s.id = 'sai-styles';
     s.textContent = CSS;
     document.head.appendChild(s);
   }
 
-  // ── BUILD HTML ──────────────────────────────────────────────
-  function buildWidget() {
+  function buildDOM() {
     // Floating button
     const btn = document.createElement('button');
-    btn.id = 'syntrix-ai-btn';
-    btn.title = 'Open Syntrix AI';
-    btn.innerHTML = '⊞<span id="syntrix-ai-badge"></span>';
-    btn.addEventListener('click', togglePanel);
+    btn.id = 'sai-btn';
+    btn.setAttribute('aria-label', 'Open Syntrix AI Assistant');
+    btn.innerHTML = '🤖<span id="sai-notif"></span>';
+    document.body.appendChild(btn);
 
     // Panel
     const panel = document.createElement('div');
-    panel.id = 'syntrix-ai-panel';
+    panel.id = 'sai-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Syntrix AI Chat');
     panel.innerHTML = `
-      <div class="ai-panel-header">
-        <div class="ai-avatar">⊞</div>
-        <div class="ai-header-info">
-          <div class="ai-header-name">Syntrix AI</div>
-          <div class="ai-header-status">
-            <span class="ai-status-dot"></span>
-            Powered by Gemini 2.0 Flash · Free
+      <div class="sai-hdr">
+        <div class="sai-logo">🤖</div>
+        <div class="sai-hdr-info">
+          <div class="sai-name">Syntrix AI</div>
+          <div class="sai-status">
+            <span class="sai-dot"></span>
+            Gemini 2.5 Flash · Free · Online
           </div>
         </div>
-        <button class="ai-close-btn" title="Close" onclick="document.getElementById('syntrix-ai-btn').click()">✕</button>
+        <div class="sai-hdr-btns">
+          <button class="sai-hdr-btn" id="sai-key-btn" title="Configure API Key">🔑</button>
+          <button class="sai-hdr-btn" id="sai-clear-btn" title="Clear chat">🗑</button>
+          <button class="sai-hdr-btn" id="sai-close-btn" title="Close">✕</button>
+        </div>
       </div>
-      <div class="ai-messages" id="syntrix-ai-messages"></div>
-      <div class="ai-quick-chips" id="syntrix-ai-chips"></div>
-      <div class="ai-input-area">
-        <textarea class="ai-input" id="syntrix-ai-input"
-          placeholder="Ask me anything about Syntrix or anything else…"
-          rows="1"></textarea>
-        <button class="ai-send-btn" id="syntrix-ai-send" title="Send">➤</button>
+      <div class="sai-msgs" id="sai-msgs"></div>
+      <div class="sai-chips" id="sai-chips"></div>
+      <div class="sai-input-row">
+        <textarea class="sai-input" id="sai-input"
+          placeholder="Ask me anything…" rows="1"></textarea>
+        <button class="sai-send" id="sai-send" title="Send (Enter)">➤</button>
       </div>
     `;
-
-    document.body.appendChild(btn);
     document.body.appendChild(panel);
   }
 
-  // ── INIT INTERACTIONS ───────────────────────────────────────
-  function initInteractions() {
-    const input  = document.getElementById('syntrix-ai-input');
-    const sendBtn = document.getElementById('syntrix-ai-send');
-    const chipsEl = document.getElementById('syntrix-ai-chips');
-
-    // Quick chips
-    QUICK_CHIPS.forEach(q => {
-      const chip = document.createElement('button');
-      chip.className = 'ai-chip';
-      chip.textContent = q;
-      chip.addEventListener('click', () => {
-        input.value = q;
-        sendMessage();
+  function buildChips() {
+    const chipsEl = document.getElementById('sai-chips');
+    if (!chipsEl) return;
+    chipsEl.innerHTML = '';
+    getChips().forEach(q => {
+      const c = document.createElement('button');
+      c.className = 'sai-chip';
+      c.textContent = q;
+      c.addEventListener('click', () => {
+        chipsEl.style.display = 'none';
+        sendMsg(q);
       });
-      chipsEl.appendChild(chip);
-    });
-
-    // Send button
-    sendBtn.addEventListener('click', sendMessage);
-
-    // Enter key (Shift+Enter = newline)
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-
-    // Auto-resize textarea
-    input.addEventListener('input', () => {
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+      chipsEl.appendChild(c);
     });
   }
 
-  // ── TOGGLE PANEL ────────────────────────────────────────────
-  function togglePanel() {
-    isOpen = !isOpen;
-    const panel = document.getElementById('syntrix-ai-panel');
-    const badge = document.getElementById('syntrix-ai-badge');
-    panel.classList.toggle('open', isOpen);
-    if (badge) badge.style.display = 'none';
+  function bindEvents() {
+    document.getElementById('sai-btn').addEventListener('click', togglePanel);
+    document.getElementById('sai-close-btn').addEventListener('click', () => setOpen(false));
+    document.getElementById('sai-clear-btn').addEventListener('click', clearChat);
+    document.getElementById('sai-key-btn').addEventListener('click', showKeyConfigUI);
+    document.getElementById('sai-send').addEventListener('click', () => {
+      const v = document.getElementById('sai-input').value.trim();
+      if (v) sendMsg(v);
+    });
+    document.getElementById('sai-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('sai-send').click(); }
+    });
+    document.getElementById('sai-input').addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 110) + 'px';
+    });
+  }
 
-    if (isOpen) {
-      // Show greeting if no history
-      if (chatHistory.length === 0) {
-        setTimeout(() => showGreeting(), 200);
-      }
+  // ── PANEL CONTROL ─────────────────────────────────────────────
+  function togglePanel() { setOpen(!open); }
+
+  function setOpen(val) {
+    open = val;
+    document.getElementById('sai-panel').classList.toggle('open', open);
+    document.getElementById('sai-notif').style.display = 'none';
+    if (open) {
+      if (!greeted) { greeted = true; buildChips(); setTimeout(greet, 160); }
       setTimeout(() => {
-        const input = document.getElementById('syntrix-ai-input');
-        if (input) input.focus();
-        scrollToBottom();
-      }, 250);
-
-      // Check API key
-      if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY') {
-        const saved = localStorage.getItem('syntrix_gemini_key');
-        if (saved) {
-          apiKey = saved;
-        } else {
-          showKeyPrompt();
-        }
-      }
+        document.getElementById('sai-input').focus();
+        scrollBot();
+      }, 260);
     }
   }
 
-  // ── API KEY PROMPT ──────────────────────────────────────────
-  function showKeyPrompt() {
-    const msgsEl = document.getElementById('syntrix-ai-messages');
-    const div = document.createElement('div');
-    div.className = 'ai-key-prompt';
-    div.innerHTML = `
-      <div>🔑 Enter your <strong style="color:#00e383">free Gemini API key</strong> to start chatting.<br>
-      Get one at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com</a> — no credit card needed!</div>
-      <div class="ai-key-input-wrap">
-        <input class="ai-key-input" id="ai-key-field" placeholder="AIza..." type="password">
-        <button class="ai-key-save-btn" onclick="window._syntrixAI.saveKey()">Save</button>
-      </div>
-    `;
-    msgsEl.appendChild(div);
-    scrollToBottom();
-  }
-
-  // ── GREETING ────────────────────────────────────────────────
-  function showGreeting() {
-    const page = window.location.pathname.replace('/', '') || 'login';
-    const greetings = {
-      login:   '👋 Hey! I\'m **Syntrix AI** — your V2X system guide. Log in and I\'ll help you navigate the platform. Or ask me anything!',
-      control: '🎛️ Welcome to the **Control Center**! I can help you manage users, understand the live map, configure ranges, or answer anything else.',
-      emergency: '🚨 **EV Command Panel** — tap the red button to broadcast your GPS. Ask me about V2V alerts, signal preemption, or how the Kalman filter works!',
-      signal:  '🚦 **Signal Authority Panel** — your signal auto-preempts when an EV gets within 50m. Ask me about the signal cycle or V2I logic!',
-      'vehicle1': '🚗 **Civic Driver 1** — I\'ll alert you when an EV is nearby. Ask me what V2V means or how to yield correctly!',
-      'vehicle2': '🚗 **Civic Driver 2** — same as Vehicle 1 but on a separate Firebase node. Questions? Just ask!',
-      'user-portal': '🌐 **Role Portal** — choose your role here. EV and Signal roles need admin approval. Ask me anything!',
-      'admin-preview': '👁️ **Observer Mode** — read-only live view. Ask me about the system data you\'re seeing!',
+  function greet() {
+    const page = (window.location.pathname || '/').replace(/\//g,'').replace('.html','') || 'login';
+    const msgs = {
+      login:          '👋 Hey! I\'m **Syntrix AI** — your smart assistant for this V2X platform. Ask me anything about the system, or just chat!',
+      control:        '🎛️ Welcome to the **Admin Control Center**! I can help with user approvals, map features, analytics, or anything you\'re curious about.',
+      emergency:      '🚨 **Emergency Responder Panel** here! Tap the big button to broadcast your GPS. Ask me how V2V works, or anything else!',
+      signal:         '🚦 **Signal Authority** — I\'ll auto-go green when an EV is within 50m! Ask me about the signal cycle or V2I logic.',
+      vehicle1:       '🚗 **Civic Driver 1** — you\'ll get a yield alert when an EV is nearby. Ask me about V2V, or anything at all!',
+      vehicle2:       '🚗 **Civic Driver 2** — same as Vehicle 1, separate Firebase node. Questions? I\'m here!',
+      'user-portal':  '🌐 **Role Portal** — pick your role here. EV & Signal need admin approval first. Ask me anything!',
+      'admin-preview':'👁️ **Observer Mode** — read-only live view. Ask me about what you\'re seeing!',
     };
-    const msg = greetings[page] || '👋 Hi! I\'m **Syntrix AI**. I know everything about this V2X platform and can also help with general questions. What\'s on your mind?';
-    addMessage('assistant', msg);
+    addMsg('assistant', msgs[page] || '👋 Hi! I\'m **Syntrix AI** — I know everything about this V2X platform and can answer any question. What\'s up?');
   }
 
-  // ── SEND MESSAGE ────────────────────────────────────────────
-  async function sendMessage() {
-    if (isLoading) return;
-    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY') {
-      const saved = localStorage.getItem('syntrix_gemini_key');
-      if (saved) { apiKey = saved; } else { showKeyPrompt(); return; }
-    }
+  function clearChat() {
+    history = [];
+    greeted = false;
+    document.getElementById('sai-msgs').innerHTML = '';
+    buildChips();
+    document.getElementById('sai-chips').style.display = '';
+    setTimeout(greet, 100);
+  }
 
-    const input = document.getElementById('syntrix-ai-input');
-    const sendBtn = document.getElementById('syntrix-ai-send');
-    const text = input.value.trim();
-    if (!text) return;
+  // ── SEND ──────────────────────────────────────────────────────
+  async function sendMsg(text) {
+    if (busy || !text) return;
 
-    // Hide quick chips after first message
-    const chips = document.getElementById('syntrix-ai-chips');
-    if (chips) chips.style.display = 'none';
+    // Hide chips
+    const chipsEl = document.getElementById('sai-chips');
+    if (chipsEl) chipsEl.style.display = 'none';
 
-    addMessage('user', text);
-    input.value = '';
-    input.style.height = 'auto';
+    const input = document.getElementById('sai-input');
+    if (input.value === text) { input.value = ''; input.style.height = 'auto'; }
 
-    isLoading = true;
-    sendBtn.disabled = true;
+    addMsg('user', text);
+    busy = true;
+    document.getElementById('sai-send').disabled = true;
+
     const typingEl = showTyping();
 
     try {
       const reply = await callGemini(text);
-      removeTyping(typingEl);
-      addMessage('assistant', reply);
-
-      // Store in history (limit to maxHistory pairs)
-      chatHistory.push({ role: 'user', text });
-      chatHistory.push({ role: 'assistant', text: reply });
-      if (chatHistory.length > CONFIG.maxHistory * 2) {
-        chatHistory = chatHistory.slice(-CONFIG.maxHistory * 2);
-      }
+      removeEl(typingEl);
+      addMsg('assistant', reply);
+      history.push({ u: text, a: reply });
+      if (history.length > MAX_TURNS) history = history.slice(-MAX_TURNS);
     } catch (err) {
-      removeTyping(typingEl);
-      const errDiv = document.createElement('div');
-      errDiv.className = 'ai-error-msg';
-      errDiv.textContent = '⚠️ ' + (err.message || 'Something went wrong. Check your API key.');
-      document.getElementById('syntrix-ai-messages').appendChild(errDiv);
+      removeEl(typingEl);
+      addErr(err.message || 'Something went wrong. Please try again.');
+      if (err.message.includes('API key') || err.message.includes('leaked') || err.message.includes('403') || err.message.includes('PERMISSION_DENIED')) {
+        showKeySetupMessage(err.message);
+      }
     } finally {
-      isLoading = false;
-      sendBtn.disabled = false;
-      scrollToBottom();
-      input.focus();
+      busy = false;
+      document.getElementById('sai-send').disabled = false;
+      document.getElementById('sai-input').focus();
+      scrollBot();
     }
   }
 
-  // ── CALL GEMINI API ─────────────────────────────────────────
+  // ── GEMINI API ────────────────────────────────────────────────
   async function callGemini(userText) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.model}:generateContent?key=${apiKey}`;
-
-    // Build conversation contents
+    // Build contents array from history
     const contents = [];
-
-    // Past turns
-    for (let i = 0; i < chatHistory.length; i += 2) {
-      if (chatHistory[i] && chatHistory[i+1]) {
-        contents.push({ role: 'user',  parts: [{ text: chatHistory[i].text }] });
-        contents.push({ role: 'model', parts: [{ text: chatHistory[i+1].text }] });
-      }
-    }
-
-    // Current message
+    history.forEach(turn => {
+      contents.push({ role: 'user',  parts: [{ text: turn.u }] });
+      contents.push({ role: 'model', parts: [{ text: turn.a }] });
+    });
     contents.push({ role: 'user', parts: [{ text: userText }] });
 
-    const body = {
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    const payload = {
+      system_instruction: { parts: [{ text: getSystemPrompt() }] },
       contents,
       generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 1024,
+        temperature: 0.85,
+        maxOutputTokens: 1200,
         topK: 40,
         topP: 0.95,
       },
@@ -616,125 +437,271 @@ Always be helpful, friendly and conversational. Use emojis occasionally. Keep re
       ],
     };
 
-    const resp = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json().catch(() => ({}));
-      const msg = err?.error?.message || `API error ${resp.status}`;
-      if (resp.status === 400 && msg.includes('API_KEY')) throw new Error('Invalid API key. Check aistudio.google.com');
-      if (resp.status === 429) throw new Error('Rate limit hit. Wait a moment and try again.');
-      throw new Error(msg);
+    let res;
+    try {
+      res = await fetch(getGeminiUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (netErr) {
+      throw new Error('Network error — check your internet connection.');
     }
 
-    const data = await resp.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('No response from Gemini.');
+    if (!res.ok) {
+      let errMsg = 'API error ' + res.status;
+      try {
+        const j = await res.json();
+        errMsg = j?.error?.message || errMsg;
+      } catch (_) {}
+      if (res.status === 400) throw new Error('Bad request: ' + errMsg);
+      if (res.status === 429) throw new Error('Rate limit reached. Wait a moment and try again ⏳');
+      if (res.status === 403) throw new Error('API key invalid or quota exceeded.');
+      throw new Error(errMsg);
+    }
+
+    const data = await res.json();
+
+    // Handle blocked responses
+    const candidate = data?.candidates?.[0];
+    if (!candidate) {
+      const reason = data?.promptFeedback?.blockReason;
+      throw new Error(reason ? 'Blocked: ' + reason : 'No response from Gemini.');
+    }
+    if (candidate.finishReason === 'SAFETY') {
+      throw new Error('Response blocked by safety filters. Try rephrasing.');
+    }
+
+    const text = candidate?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Empty response from Gemini.');
     return text;
   }
 
-  // ── ADD MESSAGE ─────────────────────────────────────────────
-  function addMessage(role, text) {
-    const msgsEl = document.getElementById('syntrix-ai-messages');
-    const wrap = document.createElement('div');
-    wrap.className = 'ai-msg ' + role;
+  // ── DOM HELPERS ───────────────────────────────────────────────
+  function addMsg(role, text) {
+    const msgs = document.getElementById('sai-msgs');
+    const row = document.createElement('div');
+    row.className = 'sai-msg ' + role;
 
-    const avatar = document.createElement('div');
-    avatar.className = 'ai-msg-avatar';
-    avatar.textContent = role === 'assistant' ? '⊞' : '👤';
+    const av = document.createElement('div');
+    av.className = 'sai-av';
+    av.textContent = role === 'assistant' ? '🤖' : '👤';
 
     const bubble = document.createElement('div');
-    bubble.className = 'ai-msg-bubble';
-    bubble.innerHTML = formatMarkdown(text);
+    bubble.className = 'sai-bubble';
+    bubble.innerHTML = md(text);
 
-    wrap.appendChild(avatar);
-    wrap.appendChild(bubble);
-    msgsEl.appendChild(wrap);
-    scrollToBottom();
+    row.appendChild(av);
+    row.appendChild(bubble);
+    msgs.appendChild(row);
+    scrollBot();
   }
 
-  // ── TYPING INDICATOR ────────────────────────────────────────
   function showTyping() {
-    const msgsEl = document.getElementById('syntrix-ai-messages');
-    const wrap = document.createElement('div');
-    wrap.className = 'ai-msg assistant';
-    wrap.id = 'syntrix-ai-typing';
+    const msgs = document.getElementById('sai-msgs');
+    const row = document.createElement('div');
+    row.className = 'sai-msg assistant';
+    row.id = 'sai-typing';
 
-    const avatar = document.createElement('div');
-    avatar.className = 'ai-msg-avatar';
-    avatar.textContent = '⊞';
+    const av = document.createElement('div');
+    av.className = 'sai-av';
+    av.textContent = '🤖';
 
-    const typing = document.createElement('div');
-    typing.className = 'ai-typing';
-    typing.innerHTML = '<span></span><span></span><span></span>';
+    const t = document.createElement('div');
+    t.className = 'sai-typing';
+    t.innerHTML = '<span></span><span></span><span></span>';
 
-    wrap.appendChild(avatar);
-    wrap.appendChild(typing);
-    msgsEl.appendChild(wrap);
-    scrollToBottom();
-    return wrap;
+    row.appendChild(av);
+    row.appendChild(t);
+    msgs.appendChild(row);
+    scrollBot();
+    return row;
   }
 
-  function removeTyping(el) {
-    if (el && el.parentNode) el.parentNode.removeChild(el);
+  function removeEl(el) { if (el && el.parentNode) el.parentNode.removeChild(el); }
+
+  function addErr(msg) {
+    const msgs = document.getElementById('sai-msgs');
+    const d = document.createElement('div');
+    d.className = 'sai-err';
+    d.textContent = '⚠️ ' + msg;
+    msgs.appendChild(d);
+    scrollBot();
   }
 
-  // ── MARKDOWN FORMATTER ───────────────────────────────────────
-  function formatMarkdown(text) {
-    return text
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+  function scrollBot() {
+    const msgs = document.getElementById('sai-msgs');
+    if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 50);
+  }
+
+  // ── MARKDOWN RENDERER ─────────────────────────────────────────
+  function md(raw) {
+    return raw
+      // Sanitize
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      // Code blocks (```...```)
+      .replace(/```([\s\S]*?)```/g, '<pre style="background:rgba(0,0,0,.45);border-radius:8px;padding:8px 12px;overflow-x:auto;margin:6px 0;font-size:.72rem;color:#00e383;font-family:JetBrains Mono,monospace"><code>$1</code></pre>')
+      // Inline code
       .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // Bold
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      // Italic
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      // Headers
+      .replace(/^### (.+)$/gm, '<strong style="color:#00e0ff;display:block;margin-top:6px">$1</strong>')
+      .replace(/^## (.+)$/gm,  '<strong style="color:#00e383;display:block;margin-top:8px;font-size:.82rem">$1</strong>')
+      // Bullet lists
+      .replace(/^[-*] (.+)$/gm, '• $1')
+      // Numbered lists
+      .replace(/^\d+\. (.+)$/gm, '→ $1')
+      // Links
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      // Line breaks
       .replace(/\n/g, '<br>');
   }
 
-  // ── SCROLL ──────────────────────────────────────────────────
-  function scrollToBottom() {
-    const msgsEl = document.getElementById('syntrix-ai-messages');
-    if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+  // ── KEY CONFIGURATION UI ──────────────────────────────────────
+  function showKeySetupMessage(errorText) {
+    const msgs = document.getElementById('sai-msgs');
+    if (!msgs) return;
+    
+    const row = document.createElement('div');
+    row.className = 'sai-msg assistant';
+    
+    const av = document.createElement('div');
+    av.className = 'sai-av';
+    av.textContent = '🔑';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'sai-bubble';
+    bubble.style.border = '1px solid rgba(255,170,0,0.3)';
+    bubble.style.background = 'rgba(255,170,0,0.06)';
+    
+    const hasCustom = !!localStorage.getItem('v2x_gemini_key');
+    bubble.innerHTML = `
+      <strong style="color:#ffaa00">⚠️ API Key Error</strong>
+      <p style="margin:6px 0;font-size:0.72rem;line-height:1.4;color:rgba(219,228,232,0.85)">
+        ${hasCustom 
+          ? 'The **custom API key** you entered is invalid, has expired/been revoked, or its quota is exceeded.' 
+          : 'The default platform API key is invalid or has been revoked (e.g. flagged as leaked).'}
+      </p>
+      <p style="margin:4px 0 8px;font-size:0.64rem;color:rgba(219,228,232,0.6)">
+        Error: <em>${errorText}</em>
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <input type="password" id="sai-new-key" placeholder="Paste your AIzaSy... Gemini API key" 
+          style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);color:#fff;font-size:0.7rem;outline:none;" />
+        <button id="sai-save-key-btn" style="width:100%;padding:6px;border-radius:8px;border:none;background:#ffaa00;color:#000;font-size:0.7rem;font-weight:bold;cursor:pointer;transition:background 0.2s">
+          Apply & Save Key
+        </button>
+        <span style="font-size:0.58rem;color:rgba(132,149,134,0.6);text-align:center">
+          Key will be saved locally in your browser storage.
+        </span>
+      </div>
+    `;
+    
+    row.appendChild(av);
+    row.appendChild(bubble);
+    msgs.appendChild(row);
+    scrollBot();
+    
+    // Bind click
+    setTimeout(() => {
+      const btn = document.getElementById('sai-save-key-btn');
+      const input = document.getElementById('sai-new-key');
+      if (btn && input) {
+        btn.addEventListener('click', () => {
+          const val = input.value.trim();
+          if (val) {
+            localStorage.setItem('v2x_gemini_key', val);
+            clearChat();
+            addMsg('assistant', '✅ **Gemini API Key updated successfully!** Try asking a question now.');
+          }
+        });
+      }
+    }, 100);
   }
 
-  // ── EXPOSE GLOBALS ───────────────────────────────────────────
-  window._syntrixAI = {
-    saveKey() {
-      const field = document.getElementById('ai-key-field');
-      if (!field || !field.value.trim()) return;
-      apiKey = field.value.trim();
-      localStorage.setItem('syntrix_gemini_key', apiKey);
-      // Clear key prompt and show greeting
-      const msgsEl = document.getElementById('syntrix-ai-messages');
-      msgsEl.innerHTML = '';
-      chatHistory = [];
-      showGreeting();
-    },
-    clearChat() {
-      chatHistory = [];
-      const msgsEl = document.getElementById('syntrix-ai-messages');
-      if (msgsEl) msgsEl.innerHTML = '';
-      showGreeting();
-    }
-  };
-
-  // ── INIT ────────────────────────────────────────────────────
-  function init() {
-    // Check saved key
-    const savedKey = localStorage.getItem('syntrix_gemini_key');
-    if (savedKey) apiKey = savedKey;
-
-    injectStyles();
-    buildWidget();
-    initInteractions();
-
-    console.log('✅ Syntrix AI Chat Widget loaded · Gemini 2.0 Flash');
+  function showKeyConfigUI() {
+    const msgs = document.getElementById('sai-msgs');
+    if (!msgs) return;
+    
+    const customKey = localStorage.getItem('v2x_gemini_key') || '';
+    const hasCustom = !!customKey;
+    
+    const row = document.createElement('div');
+    row.className = 'sai-msg assistant';
+    
+    const av = document.createElement('div');
+    av.className = 'sai-av';
+    av.textContent = '🔑';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'sai-bubble';
+    bubble.style.border = '1px solid rgba(0,224,255,0.3)';
+    bubble.style.background = 'rgba(0,224,255,0.06)';
+    
+    bubble.innerHTML = `
+      <strong style="color:#00e0ff">🔑 Gemini API Key Configuration</strong>
+      <p style="margin:6px 0;font-size:0.72rem;line-height:1.4">
+        ${hasCustom 
+          ? 'You are using a **custom API key** saved in this browser.' 
+          : 'You are currently using the **default platform API key**.'}
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+        <input type="password" id="sai-new-key" placeholder="Paste your AIzaSy... Gemini API key" 
+          value="${customKey}"
+          style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(0,0,0,0.3);color:#fff;font-size:0.7rem;outline:none;" />
+        <div style="display:flex;gap:6px">
+          <button id="sai-save-key-btn" style="flex:1;padding:6px;border-radius:8px;border:none;background:#00e383;color:#000;font-size:0.7rem;font-weight:bold;cursor:pointer">
+            Save Key
+          </button>
+          ${hasCustom ? `
+            <button id="sai-reset-key-btn" style="padding:6px 10px;border-radius:8px;border:1px solid rgba(255,112,112,0.3);background:rgba(255,112,112,0.1);color:#ff7070;font-size:0.7rem;cursor:pointer">
+              Reset
+            </button>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    
+    row.appendChild(av);
+    row.appendChild(bubble);
+    msgs.appendChild(row);
+    scrollBot();
+    
+    setTimeout(() => {
+      const saveBtn = document.getElementById('sai-save-key-btn');
+      const resetBtn = document.getElementById('sai-reset-key-btn');
+      const input = document.getElementById('sai-new-key');
+      
+      if (saveBtn && input) {
+        saveBtn.addEventListener('click', () => {
+          const val = input.value.trim();
+          if (val) {
+            localStorage.setItem('v2x_gemini_key', val);
+            addMsg('assistant', '✅ **Gemini API Key updated successfully!** Try chatting now.');
+          } else {
+            localStorage.removeItem('v2x_gemini_key');
+            addMsg('assistant', '🔄 **Custom API Key removed.** Reverted to default platform key.');
+          }
+        });
+      }
+      
+      if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+          localStorage.removeItem('v2x_gemini_key');
+          addMsg('assistant', '🔄 **API Key Reset.** Reverted to default platform key.');
+        });
+      }
+    }, 100);
   }
 
+  // ── BOOT ──────────────────────────────────────────────────────
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
+
 })();

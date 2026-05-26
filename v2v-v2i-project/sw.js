@@ -10,7 +10,7 @@
 //  Offline fallback → /login
 // ================================================================
 
-const VERSION     = 'syntrix-v2x-v2.2';
+const VERSION     = 'syntrix-v2x-v2.6';
 const OFFLINE_URL = '/login';
 
 // Clean URL paths (Firebase cleanUrls: true strips .html)

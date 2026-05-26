@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- Syntrix V2X — vehicle1.html | Phase 2 | Civic Driver Portal -->
 <html lang="en">
 <head>
@@ -42,41 +42,62 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
   border:1.5px solid var(--alert);
   background:rgba(198,3,26,.08);
   display:none;
-  animation:alertPulse 1.5s ease-in-out infinite;
+  animation:alertPulse 1.2s ease-in-out infinite;
 }
 .alert-banner.show{display:block}
-@keyframes alertPulse{0%,100%{box-shadow:0 0 0 0 rgba(198,3,26,.3)}50%{box-shadow:0 0 0 8px rgba(198,3,26,0)}}
+@keyframes alertPulse{0%,100%{box-shadow:0 0 0 0 rgba(198,3,26,.4),inset 0 0 0 0 rgba(198,3,26,.05)}50%{box-shadow:0 0 0 10px rgba(198,3,26,0),inset 0 0 20px rgba(198,3,26,.08)}}
 .alert-title{font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:600;color:var(--alert);margin-bottom:8px;display:flex;align-items:center;gap:7px}
-.alert-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--alert);animation:blink 0.8s infinite;flex-shrink:0}
-@keyframes blink{50%{opacity:.2}}
-.alert-dist{font-family:'JetBrains Mono',monospace;font-size:1.6rem;font-weight:600;color:#fff;line-height:1;margin-bottom:6px}
+.alert-title::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--alert);animation:blink 0.6s infinite;flex-shrink:0}
+@keyframes blink{50%{opacity:.15}}
+.alert-dist{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:#fff;line-height:1;margin-bottom:4px}
 .alert-type{font-size:.72rem;color:var(--text-dim);margin-bottom:10px}
+
+/* RADAR BAR */
+.radar-bar-wrap{margin:8px 0 12px;position:relative}
+.radar-bar-bg{height:8px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden}
+.radar-bar-fill{
+  height:100%;border-radius:8px;transition:width .4s ease;
+  background:linear-gradient(90deg,var(--primary),var(--yellow),var(--alert));
+  box-shadow:0 0 8px rgba(198,3,26,.5);
+}
+.radar-bar-label{
+  display:flex;justify-content:space-between;
+  font-family:'JetBrains Mono',monospace;font-size:.5rem;
+  color:var(--outline);margin-bottom:4px;
+}
 
 /* YIELD DIRECTION */
 .yield-arrow{
-  display:flex;align-items:center;justify-content:center;gap:10px;
-  padding:10px;background:rgba(0,0,0,.3);border-radius:.75rem;
-  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  padding:12px;background:rgba(0,0,0,.3);border-radius:.75rem;
+  border:1px solid rgba(0,227,131,.15);
+  box-shadow:0 0 20px rgba(0,227,131,.05);
 }
 .yield-dir{
-  font-size:2.5rem;line-height:1;
-  filter:drop-shadow(0 0 12px var(--primary));
+  font-size:3rem;line-height:1;
+  filter:drop-shadow(0 0 14px var(--primary));
+  animation:yieldBounce 1s ease-in-out infinite;
 }
+@keyframes yieldBounce{0%,100%{transform:translateX(0)}50%{transform:translateX(-6px)}}
+.yield-dir.right{animation-name:yieldBounceR}
+@keyframes yieldBounceR{0%,100%{transform:translateX(0)}50%{transform:translateX(6px)}}
 .yield-label{
-  font-family:'JetBrains Mono',monospace;font-size:.75rem;
-  font-weight:600;color:var(--primary);letter-spacing:.08em;
+  font-family:'JetBrains Mono',monospace;font-size:.85rem;
+  font-weight:700;color:var(--primary);letter-spacing:.08em;
 }
 
 /* NO EV STATE */
 .standby-card{
   margin:12px 14px 8px;
-  border-radius:1rem;padding:18px;
+  border-radius:1rem;padding:20px;
   border:1px solid var(--border);
   background:rgba(25,33,36,.6);text-align:center;
+  transition:all .3s;
 }
-.standby-ico{font-size:2.2rem;margin-bottom:10px;display:block;opacity:.5}
-.standby-title{font-size:.85rem;font-weight:600;color:var(--text-dim);margin-bottom:5px}
-.standby-sub{font-size:.7rem;color:var(--outline);line-height:1.6}
+.standby-ico{font-size:2.4rem;margin-bottom:10px;display:block;opacity:.4;animation:standbyFloat 3s ease-in-out infinite}
+@keyframes standbyFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.standby-title{font-size:.88rem;font-weight:600;color:var(--text-dim);margin-bottom:6px}
+.standby-sub{font-size:.72rem;color:var(--outline);line-height:1.65}
 
 /* GPS Section */
 .data-section{margin:0 14px 10px;background:rgba(19,27,30,.85);border-radius:1rem;border:1px solid var(--border);overflow:hidden}
@@ -136,11 +157,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
   <div class="alert-title">⚠️ EMERGENCY VEHICLE APPROACHING</div>
   <div class="alert-dist" id="alertDist">—m</div>
   <div class="alert-type" id="alertType">—</div>
+  <div class="radar-bar-wrap">
+    <div class="radar-bar-label">
+      <span>SAFE</span><span id="radarPct">0%</span><span>DANGER</span>
+    </div>
+    <div class="radar-bar-bg"><div class="radar-bar-fill" id="radarFill" style="width:0%"></div></div>
+  </div>
   <div class="yield-arrow" id="yieldArrow">
     <div class="yield-dir" id="yieldDir">←</div>
     <div>
       <div class="yield-label" id="yieldLabel">MOVE LEFT</div>
-      <div style="font-size:.62rem;color:var(--text-dim);margin-top:4px">Pull over immediately</div>
+      <div style="font-size:.62rem;color:var(--text-dim);margin-top:4px">Pull over immediately · Give way</div>
     </div>
   </div>
 </div>
@@ -284,18 +311,28 @@ DB.emergency.on('value',snap=>{
     document.getElementById('v2vStatus').className='dg-val '+(inRange?'bad':'');
 
     if(inRange){
-      // Calculate yield direction
       const side=getYieldSide(d.lat,d.lng,d.heading||0,myLat,myLng);
       const isLeft=side==='LEFT';
-      document.getElementById('yieldDir').textContent=isLeft?'←':'→';
+      const yieldDirEl=document.getElementById('yieldDir');
+      yieldDirEl.textContent=isLeft?'←':'→';
+      yieldDirEl.className='yield-dir'+(isLeft?'':' right');
       document.getElementById('yieldLabel').textContent='MOVE '+(isLeft?'LEFT':'RIGHT');
+      // Radar bar: 0m = 100%, RANGE_V2V = 0%
+      const pct=Math.min(100,Math.round((1-dist/RANGE_V2V)*100));
+      document.getElementById('radarFill').style.width=pct+'%';
+      document.getElementById('radarPct').textContent=pct+'%';
       document.getElementById('alertBanner').classList.add('show');
       document.getElementById('standbyCard').style.display='none';
       document.getElementById('evInfoRow').style.display='flex';
       document.getElementById('evInfoLabel').textContent='EV '+dist+'m away — '+(isLeft?'pull LEFT':'pull RIGHT');
       MY_DB_REF.update({alert:true,yield:false,evDist:dist,yieldSide:side});
-      if(!alertPlaying){alertPlaying=true;beep(800,.2);beep(1000,.15);addLog('a','⚠️ EV IN RANGE: '+dist+'m — YIELD '+(isLeft?'LEFT':'RIGHT'));}
-    } else {
+      if(!alertPlaying){
+        alertPlaying=true;
+        beep(800,.2);beep(1000,.15);
+        // Mobile vibration
+        if('vibrate' in navigator) navigator.vibrate([200,100,200,100,400]);
+        addLog('a','⚠️ EV IN RANGE: '+dist+'m — YIELD '+(isLeft?'LEFT':'RIGHT'));
+      }
       document.getElementById('alertBanner').classList.remove('show');
       document.getElementById('standbyCard').style.display='block';
       document.getElementById('evInfoRow').style.display='none';
@@ -343,6 +380,13 @@ window.addEventListener('load',startGPS);
 
 // SW registration
 if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
