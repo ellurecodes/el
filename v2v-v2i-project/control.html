@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/route-utils.js"></script>
 <style>
 /* INSTANT AUTH GUARD */
 body{visibility:var(--body-vis,hidden)}
@@ -536,6 +537,7 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
     <button class="tb-btn primary" id="trackBtn" onclick="toggleTrack()">📍 Track EV</button>
     <button class="tb-btn" onclick="resetMapView()">🗺️ Fit All</button>
     <button class="tb-btn" onclick="switchTileLayer()">🛰️ Toggle Map</button>
+    <button class="tb-btn" id="routeToggleBtn" onclick="togglePlannedRoute()">🚨 Planned Route</button>
     <button class="tb-btn danger" onclick="clearDB()">🗑️ Clear DB</button>
   </div>
 
@@ -564,6 +566,7 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
         <div class="ml"><div class="mld" style="background:#ffaa00;box-shadow:0 0 6px #ffaa00"></div>Traffic Signal</div>
         <div class="ml"><div class="mld" style="background:#00e0ff;box-shadow:0 0 6px #00e0ff"></div>Vehicle 1</div>
         <div class="ml"><div class="mld" style="background:#aa44ff;box-shadow:0 0 6px #aa44ff"></div>Vehicle 2</div>
+        <div class="ml" id="legendRoute" style="display:none"><div class="mld" style="background:none;border:2px dashed #c6031a;border-radius:0;width:16px;height:4px;margin-top:3px"></div>Planned Route</div>
       </div>
 
       <!-- EV status -->
@@ -790,13 +793,13 @@ const map = L.map('map',{zoomControl:true}).setView(mapCenter, 18);
 
 const tileLayers = {
   dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-    attribution:'© OSM | © CartoDB',subdomains:'abcd',maxZoom:20
+    attribution:'© OSM | © CartoDB',subdomains:'abcd',maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true
   }),
   satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{
-    attribution:'© Esri',maxZoom:20
+    attribution:'© Esri',maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true
   }),
   street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap',subdomains:'abc',maxZoom:20
+    attribution:'© OpenStreetMap',subdomains:'abc',maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true
   })
 };
 let currentTile = 'dark';
@@ -975,6 +978,12 @@ DB.emergency.on('value',s=>{
   if(v1Lat!==null)document.getElementById('aevV1').textContent=haversine(evLat,evLng,v1Lat,v1Lng)+'m';
   if(v2Lat!==null)document.getElementById('aevV2').textContent=haversine(evLat,evLng,v2Lat,v2Lng)+'m';
   updateGauge();
+  // Update ETA if route is set
+  if(window._evRouteEtaMin&&d.speed>0&&d.lat!=null){
+    const remaining=window._evRouteRemaining||window._evRouteEtaMin;
+    const etaEl=document.getElementById('evRouteETA');
+    if(etaEl)etaEl.textContent='ETA: ~'+remaining+'min remaining';
+  }
 });
 
 DB.signal.on('value',s=>{
@@ -1058,6 +1067,72 @@ DB.users.on('value',snap=>{
   if(snap.val())Object.entries(snap.val()).forEach(([uid,u])=>allUsers.push({uid,...u}));
   renderUsers(allUsers);
 });
+
+// ── PLANNED ROUTE (from emergency.html) ───────────────────────
+let plannedRouteLine=null,showPlannedRoute=true;
+let _adminSyntrixRoute=null;
+window._evRouteEtaMin=null;
+
+db.ref('v4/emergency/plannedRoute').on('value',snap=>{
+  const d=snap.val();
+  // Clear old route with SyntrixRoute engine
+  if(_adminSyntrixRoute){_adminSyntrixRoute.clearRoute();}else{if(plannedRouteLine){map.removeLayer(plannedRouteLine);plannedRouteLine=null;}}
+  document.getElementById('legendRoute').style.display='none';
+  const btn=document.getElementById('routeToggleBtn');
+  // Remove old ETA row
+  const oldETA=document.getElementById('evRouteETA');
+  if(oldETA)oldETA.remove();
+
+  if(!d||!d.coords||!d.coords.length){
+    window._evRouteEtaMin=null;
+    if(btn)btn.className='tb-btn';
+    return;
+  }
+  window._evRouteEtaMin=d.etaMin||null;
+  window._evRouteRemaining=d.etaMin||null;
+
+  // Initialize SyntrixRoute engine if not done
+  if(!_adminSyntrixRoute)_adminSyntrixRoute=new SyntrixRoute(map);
+
+  if(showPlannedRoute){
+    plannedRouteLine=_adminSyntrixRoute.drawRoute(d.coords,{color:'#c6031a',weight:5,animated:true});
+    _adminSyntrixRoute.drawCorridor(d.coords,60);
+    _adminSyntrixRoute.addEndpointMarkers(d.origin,d.destination);
+    document.getElementById('legendRoute').style.display='flex';
+  }
+
+  // Show route info in EV card
+  const evInfo=document.getElementById('evInfo');
+  if(evInfo&&d.distKm){
+    const etaRow=document.createElement('div');
+    etaRow.id='evRouteETA';
+    etaRow.style.cssText='margin-top:5px;padding:4px 8px;border-radius:6px;background:rgba(198,3,26,.12);border:1px solid rgba(198,3,26,.25);font-size:.58rem;color:#ff7080;font-family:"JetBrains Mono",monospace;display:flex;justify-content:space-between;align-items:center';
+    etaRow.innerHTML=`<span>🗺️ ${d.distKm}km</span><span id="adminEtaCountdown" style="font-weight:700">${d.etaMin}min</span>`;
+    evInfo.appendChild(etaRow);
+    // Start countdown
+    if(_adminSyntrixRoute)_adminSyntrixRoute.startEtaCountdown(d.etaMin,'adminEtaCountdown');
+  }
+
+  if(btn)btn.className='tb-btn danger';
+  addLog('Route data updated: '+d.distKm+'km','li-ok');
+});
+
+function togglePlannedRoute(){
+  showPlannedRoute=!showPlannedRoute;
+  const btn=document.getElementById('routeToggleBtn');
+  if(!showPlannedRoute){
+    if(plannedRouteLine){map.eachLayer(l=>{if(l instanceof L.Polyline&&l!==routeLine&&l!==v2vCirc&&l!==v2iCirc)map.removeLayer(l);});}
+    btn.className='tb-btn';
+    btn.textContent='🚨 Show Route';
+    document.getElementById('legendRoute').style.display='none';
+  } else {
+    // Re-read from Firebase
+    db.ref('v4/emergency/plannedRoute').once('value',s=>{const d=s.val();if(d&&d.coords){plannedRouteLine=L.polyline(d.coords,{color:'#c6031a',weight:5,opacity:.85,dashArray:'12,7'}).addTo(map);}});
+    btn.className='tb-btn danger';
+    btn.textContent='🚨 Planned Route';
+    document.getElementById('legendRoute').style.display='flex';
+  }
+}
 DB.admins.on('value',snap=>{
   const box=document.getElementById('adminsBox');
   if(!snap.val()){box.innerHTML='<div style="font-size:.65rem;color:var(--text-dim)">No admins</div>';return;}

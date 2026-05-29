@@ -10,7 +10,7 @@
 //  Offline fallback → /login
 // ================================================================
 
-const VERSION     = 'syntrix-v2x-v2.6';
+const VERSION     = 'syntrix-v2x-v3.0';
 const OFFLINE_URL = '/login';
 
 // Clean URL paths (Firebase cleanUrls: true strips .html)
@@ -20,7 +20,7 @@ const STATIC_CACHE = [
   '/user-portal', '/admin-preview', '/404',
   '/firebase-config.js', '/intersection-widget.js',
   '/gps-tracking.js', '/gps-dashboard.js', '/map-config.js',
-  '/ai-chat.js', '/favicon.svg',
+  '/ai-chat.js', '/route-utils.js', '/favicon.svg',
 ];
 
 const FIREBASE_LIBS = [

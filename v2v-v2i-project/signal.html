@@ -8,6 +8,7 @@
 <title>Syntrix — Signal Authority</title>
 <meta name="description" content="Syntrix Signal Authority — V2I Traffic Signal Control">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -133,6 +134,26 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .gps-overlay h2{font-family:'JetBrains Mono',monospace;color:var(--yellow);font-size:1rem;margin-bottom:12px}
 .gps-overlay p{font-size:.82rem;color:var(--text-dim);line-height:1.65;margin-bottom:22px}
 .gps-overlay button{padding:12px 28px;border-radius:.75rem;border:none;background:var(--yellow);color:#000;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer}
+/* ── MINI MAP SECTION ────────────────────────────────────────── */
+.minimap-section{margin:0 14px 12px;border-radius:1rem;border:1px solid rgba(255,170,0,.15);overflow:hidden;background:rgba(19,27,30,.85)}
+.minimap-header{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.minimap-title{font-family:'JetBrains Mono',monospace;font-size:.54rem;color:var(--outline);letter-spacing:.08em;text-transform:uppercase}
+.minimap-toggle{font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--yellow);padding:2px 8px;border-radius:8px;background:rgba(255,170,0,.08);border:1px solid rgba(255,170,0,.2)}
+.minimap-body{display:block}
+.minimap-body.collapsed{display:none}
+.minimap-eta-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;background:rgba(0,0,0,.2);font-family:'JetBrains Mono',monospace;font-size:.58rem}
+.meta-lbl{color:var(--text-dim)}.meta-val{color:var(--yellow);font-weight:600}
+.leaflet-container{background:#0d1518!important}
+.leaflet-control-zoom a{background:rgba(13,21,24,.92)!important;color:var(--text)!important;border-color:rgba(255,255,255,.1)!important}
+.leaflet-control-zoom a:hover{background:rgba(255,255,255,.1)!important;color:var(--primary)!important}
+.leaflet-popup-content-wrapper{background:rgba(13,21,24,.96)!important;border:1px solid var(--border)!important;color:var(--text)!important;border-radius:.75rem!important}
+.leaflet-popup-tip{background:rgba(13,21,24,.96)!important}
+.leaflet-control-attribution{background:rgba(13,21,24,.7)!important;color:var(--text-dim)!important;font-size:.42rem!important}
+/* tile switcher */
+.tile-switcher-mm{display:flex;gap:4px}
+.ts-btn{padding:3px 8px;border-radius:.4rem;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:.48rem;cursor:pointer;transition:all .14s}
+.ts-btn.active{border-color:rgba(255,170,0,.4);color:var(--yellow);background:rgba(255,170,0,.09)}
+.ts-btn:hover:not(.active){background:rgba(255,255,255,.08);color:var(--text)}
 </style>
 </head>
 <body>
@@ -213,12 +234,42 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 
 <div class="page-footer">🚦 Signal Authority · Syntrix V2X · V2I Preemption · Firebase</div>
 
+<!-- MINI MAP SECTION -->
+<div class="minimap-section" id="minimapSection">
+  <div class="minimap-header" onclick="toggleMinimap()">
+    <span class="minimap-title">🗺️ Route Map · Live View</span>
+    <div style="display:flex;align-items:center;gap:8px" onclick="event.stopPropagation()">
+      <div class="tile-switcher-mm">
+        <button class="ts-btn active" id="stile-dark" onclick="switchSigTile('dark')">🌑</button>
+        <button class="ts-btn" id="stile-satellite" onclick="switchSigTile('satellite')">🛰️</button>
+        <button class="ts-btn" id="stile-street" onclick="switchSigTile('street')">🗺️</button>
+      </div>
+      <span class="minimap-toggle" id="minimapToggleBtn">▼</span>
+    </div>
+  </div>
+  <div class="minimap-body" id="minimapBody">
+    <div class="minimap-eta-bar">
+      <span class="meta-lbl">EV ROUTE STATUS</span>
+      <span class="meta-val" id="mmRouteStatus">No active route</span>
+    </div>
+    <div id="sigMiniMap" style="height:220px"></div>
+    <div class="minimap-eta-bar" style="border-top:1px solid var(--border)">
+      <span class="meta-lbl">DIST TO SIGNAL</span>
+      <span class="meta-val" id="mmDistToSig">—</span>
+      <span class="meta-lbl">ETA TO SIGNAL</span>
+      <span class="meta-val" id="mmETA">—</span>
+    </div>
+  </div>
+</div>
+
 <div class="gps-overlay" id="gpsOverlay">
   <h2>📵 GPS REQUIRED</h2>
   <p>This traffic signal node needs GPS to determine its exact location for V2I communication.</p>
   <button onclick="location.reload()">🔄 Retry</button>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/route-utils.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -429,6 +480,118 @@ window.addEventListener('beforeunload', () => {
   DB.signal.remove();
 });
 window.addEventListener('load', startGPS);
+
+// ── SIGNAL MINI-MAP ─────────────────────────────────────────
+let sigMap=null,sigMapSignalMarker=null,sigMapRouteLayer=null,sigMapEVMarker=null;
+let minimapOpen=true,sigTileLayers={},currentSigTile='dark';
+
+let sigSyntrixRoute=null;
+function initSigMap(){
+  if(sigMap)return;
+  sigMap=L.map('sigMiniMap',{zoomControl:true,attributionControl:false,maxZoom:22})
+    .setView([12.9176,77.6201],13);
+  sigTileLayers={
+    dark:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true}),
+    satellite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true}),
+    street:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true})
+  };
+  sigTileLayers.dark.addTo(sigMap);
+  currentSigTile='dark';
+  sigSyntrixRoute=new SyntrixRoute(sigMap);
+}
+
+function switchSigTile(type){
+  if(!sigMap||type===currentSigTile)return;
+  sigMap.removeLayer(sigTileLayers[currentSigTile]);
+  currentSigTile=type;
+  sigTileLayers[type].addTo(sigMap);
+  ['dark','satellite','street'].forEach(t=>document.getElementById('stile-'+t)?.classList.toggle('active',t===type));
+}
+
+function toggleMinimap(){
+  minimapOpen=!minimapOpen;
+  document.getElementById('minimapBody').classList.toggle('collapsed',!minimapOpen);
+  document.getElementById('minimapToggleBtn').textContent=minimapOpen?'▼ Collapse':'▶ Expand';
+  if(minimapOpen&&sigMap)setTimeout(()=>sigMap.invalidateSize(),100);
+}
+
+// Listen for planned route from Firebase
+db.ref('v4/emergency/plannedRoute').on('value',snap=>{
+  const d=snap.val();
+  if(!sigMap)initSigMap();
+  if(sigSyntrixRoute)sigSyntrixRoute.clearRoute();
+  if(!d||!d.coords||!d.coords.length){
+    document.getElementById('mmRouteStatus').textContent='No active route';
+    document.getElementById('mmETA').textContent='—';
+    return;
+  }
+  sigSyntrixRoute.drawRoute(d.coords,{color:'#c6031a',weight:4,animated:true});
+  sigSyntrixRoute.drawCorridor(d.coords,60);
+  sigSyntrixRoute.addEndpointMarkers(d.origin,d.destination);
+  if(d.coords&&d.coords.length){
+    const bounds=L.latLngBounds(d.coords);
+    if(myLat!==null)bounds.extend([myLat,myLng]);
+    sigMap.fitBounds(bounds,{padding:[20,20]});
+  }
+  document.getElementById('mmRouteStatus').textContent=`${d.distKm}km route · ETA ${d.etaMin}min`;
+  document.getElementById('mmETA').textContent=`${d.etaMin} min`;
+  sigSyntrixRoute.startEtaCountdown(d.etaMin,'mmETA');
+});
+
+// Update signal marker on mini-map when GPS fixed
+function updateSigMapMarker(){
+  if(!sigMap||myLat===null)return;
+  if(sigMapSignalMarker)sigMap.removeLayer(sigMapSignalMarker);
+  sigMapSignalMarker=L.circleMarker([myLat,myLng],{
+    radius:10,color:'#ffaa00',fillColor:'#ffaa00',fillOpacity:.85,weight:2
+  }).addTo(sigMap).bindPopup('🚦 Signal Node');
+}
+
+// Show EV marker on mini-map
+DB.emergency.on('value',snap=>{
+  const d=snap.val();
+  if(!sigMap)return;
+  if(sigMapEVMarker){sigMap.removeLayer(sigMapEVMarker);sigMapEVMarker=null;}
+  if(!d||!d.active||d.lat==null)return;
+  sigMapEVMarker=L.circleMarker([d.lat,d.lng],{
+    radius:9,color:'#c6031a',fillColor:'#c6031a',fillOpacity:1,weight:2
+  }).addTo(sigMap).bindPopup('🚨 Emergency Vehicle');
+
+  // Compute ETA if signal GPS fixed
+  if(myLat!==null&&d.speed>0){
+    const distToSig=haversine(d.lat,d.lng,myLat,myLng);
+    const speedMs=d.speed/3.6;
+    const etaSec=Math.round(distToSig/speedMs);
+    document.getElementById('mmDistToSig').textContent=distToSig+'m';
+    document.getElementById('mmETA').textContent=etaSec<60?etaSec+'s':(Math.floor(etaSec/60)+'m '+etaSec%60+'s');
+  }
+});
+
+// Init map on page load
+window.addEventListener('load',()=>{initSigMap();});
+const _origOnPos=onPos;
+// Override to also update sig map marker
+function onPos(p){
+  gpsFixCount++;
+  document.getElementById('dFixes').textContent=gpsFixCount;
+  myLat=p.coords.latitude;
+  myLng=p.coords.longitude;
+  const acc=Math.round(p.coords.accuracy);
+  gpsFixed=true;
+  document.getElementById('gpsMode').textContent='🟢 GPS Fixed';
+  document.getElementById('dLat').textContent=myLat.toFixed(6)+'°';
+  document.getElementById('dLng').textContent=myLng.toFixed(6)+'°';
+  const accEl=document.getElementById('dAcc');
+  accEl.textContent='±'+acc+'m';
+  accEl.className='dg-val '+(acc<10?'good':acc<25?'warn':'bad');
+  document.getElementById('gpsInfo').textContent=myLat.toFixed(5)+'°N';
+  DB.signal.update({lat:myLat,lng:myLng,accuracy:acc,t:firebase.database.ServerValue.TIMESTAMP});
+  updateSigMapMarker();
+  if(sigMap&&!sigMap._initialCentered){
+    sigMap.setView([myLat,myLng],15);
+    sigMap._initialCentered=true;
+  }
+}
 
 
 // SW registration

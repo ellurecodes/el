@@ -8,6 +8,7 @@
 <title>Syntrix — Civic Driver</title>
 <meta name="description" content="Syntrix Civic Driver V2V Alert System">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -136,6 +137,29 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .gps-overlay h2{font-family:'JetBrains Mono',monospace;color:var(--secondary);font-size:1rem;margin-bottom:12px}
 .gps-overlay p{font-size:.82rem;color:var(--text-dim);line-height:1.65;margin-bottom:22px}
 .gps-overlay button{padding:12px 28px;border-radius:.75rem;border:none;background:var(--secondary);color:#000;font-family:'Inter',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer}
+/* ── MINI-MAP SECTION ───────────────────────────────────────── */
+.minimap-section{margin:0 14px 12px;border-radius:1rem;border:1px solid rgba(0,224,255,.15);overflow:hidden;background:rgba(19,27,30,.85)}
+.minimap-header{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.minimap-title{font-family:'JetBrains Mono',monospace;font-size:.54rem;color:var(--outline);letter-spacing:.08em;text-transform:uppercase}
+.minimap-toggle{font-family:'JetBrains Mono',monospace;font-size:.56rem;color:var(--secondary);padding:2px 8px;border-radius:8px;background:rgba(0,224,255,.08);border:1px solid rgba(0,224,255,.2)}
+.minimap-body{display:block}.minimap-body.collapsed{display:none}
+.minimap-statusbar{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;background:rgba(0,0,0,.2);font-family:'JetBrains Mono',monospace;font-size:.56rem;gap:8px;flex-wrap:wrap}
+.ms-lbl{color:var(--text-dim)}.ms-val{color:var(--secondary);font-weight:600}
+.route-on-my-road{display:none;margin:0 14px 8px;padding:10px 14px;border-radius:.75rem;border:1.5px solid rgba(198,3,26,.4);background:rgba(198,3,26,.07);animation:routeAlert 1.2s ease-in-out infinite}
+.route-on-my-road.show{display:block}
+@keyframes routeAlert{0%,100%{box-shadow:0 0 0 0 rgba(198,3,26,.3)}50%{box-shadow:0 0 0 8px rgba(198,3,26,0)}}
+.ror-title{font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:600;color:var(--alert);margin-bottom:3px}
+.ror-sub{font-size:.62rem;color:var(--text-dim)}
+.leaflet-container{background:#0d1518!important}
+.leaflet-control-zoom a{background:rgba(13,21,24,.92)!important;color:var(--text)!important;border-color:rgba(255,255,255,.1)!important}
+.leaflet-control-zoom a:hover{background:rgba(255,255,255,.1)!important;color:var(--primary)!important}
+.leaflet-popup-content-wrapper{background:rgba(13,21,24,.96)!important;border:1px solid var(--border)!important;color:var(--text)!important;border-radius:.75rem!important}
+.leaflet-popup-tip{background:rgba(13,21,24,.96)!important}
+.leaflet-control-attribution{background:rgba(13,21,24,.7)!important;color:var(--text-dim)!important;font-size:.42rem!important}
+.tile-switcher-mm{display:flex;gap:4px}
+.ts-btn{padding:3px 8px;border-radius:.4rem;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:.48rem;cursor:pointer;transition:all .14s}
+.ts-btn.active{border-color:rgba(0,224,255,.4);color:var(--secondary);background:rgba(0,224,255,.09)}
+.ts-btn:hover:not(.active){background:rgba(255,255,255,.08);color:var(--text)}
 </style>
 </head>
 <body>
@@ -218,12 +242,49 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 
 <div class="page-footer">🚗 Civic Driver V2V Node · Syntrix V2X · Vincenty Distance · Firebase</div>
 
+<!-- Route On My Road Alert -->
+<div class="route-on-my-road" id="routeOnRoadAlert">
+  <div class="ror-title">🚨 EV ROUTE PASSES NEAR YOU!</div>
+  <div class="ror-sub" id="routeOnRoadSub">Emergency vehicle is heading this way — stay alert and prepare to yield</div>
+</div>
+
+<!-- Mini-Map Section -->
+<div class="minimap-section">
+  <div class="minimap-header" onclick="toggleMinimap()">
+    <span class="minimap-title">🗺️ EV Route · Live Map</span>
+    <div style="display:flex;align-items:center;gap:8px" onclick="event.stopPropagation()">
+      <div class="tile-switcher-mm">
+        <button class="ts-btn active" id="v1tile-dark" onclick="switchV1Tile('dark')">🌑</button>
+        <button class="ts-btn" id="v1tile-satellite" onclick="switchV1Tile('satellite')">🛰️</button>
+        <button class="ts-btn" id="v1tile-street" onclick="switchV1Tile('street')">🗺️</button>
+      </div>
+      <span class="minimap-toggle" id="minimapToggleBtn">▼</span>
+    </div>
+  </div>
+  <div class="minimap-body" id="minimapBody">
+    <div class="minimap-statusbar">
+      <span class="ms-lbl">ROUTE</span>
+      <span class="ms-val" id="mmRouteInfo">No active route</span>
+      <span class="ms-lbl">PROXIMITY</span>
+      <span class="ms-val" id="mmProximity">—</span>
+    </div>
+    <div id="v1EtaCountdown" style="display:none;align-items:center;justify-content:space-between;padding:6px 14px;background:rgba(198,3,26,0.08);border-top:1px solid rgba(198,3,26,0.2);font-family:'JetBrains Mono',monospace">
+      <span style="font-size:.5rem;color:rgba(219,228,232,0.55);letter-spacing:.08em;text-transform:uppercase">🚨 EV ARRIVES IN</span>
+      <span id="v1EtaValue" style="font-size:.9rem;font-weight:700;color:#ff7080">—</span>
+      <span style="font-size:.5rem;color:rgba(219,228,232,0.4)">COUNTDOWN</span>
+    </div>
+    <div id="v1MiniMap" style="height:210px"></div>
+  </div>
+</div>
+
 <div class="gps-overlay" id="gpsOverlay">
   <h2>📵 GPS REQUIRED</h2>
   <p>Enable location permissions for V2V alerts.<br>Your position is needed to calculate<br>distance from emergency vehicles.</p>
   <button onclick="location.reload()">🔄 Retry</button>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/route-utils.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -376,7 +437,125 @@ function addLog(t,m){
 
 // Cleanup on exit
 window.addEventListener('beforeunload',()=>MY_DB_REF.remove());
-window.addEventListener('load',startGPS);
+window.addEventListener('load',()=>{startGPS();initV1Map();});
+
+// ── V1 MINI-MAP + ROUTE DISPLAY ─────────────────────────────
+let v1Map=null,v1MyMarker=null,v1EvMarker=null,v1RouteLayer=null;
+let v1MapOpen=true,v1TileLayers={},currentV1Tile='dark';
+const ROUTE_PROXIMITY_M=200;
+
+let v1SyntrixRoute=null;
+function initV1Map(){
+  if(v1Map)return;
+  v1Map=L.map('v1MiniMap',{zoomControl:true,attributionControl:false,maxZoom:22})
+    .setView([20.5937,78.9629],5);
+  v1TileLayers={
+    dark:L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true}),
+    satellite:L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true}),
+    street:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{subdomains:'abc',maxZoom:22,maxNativeZoom:19,tileSize:256,crossOrigin:true})
+  };
+  v1TileLayers.dark.addTo(v1Map);
+  v1SyntrixRoute = new SyntrixRoute(v1Map);
+}
+
+function switchV1Tile(type){
+  if(!v1Map||type===currentV1Tile)return;
+  v1Map.removeLayer(v1TileLayers[currentV1Tile]);
+  currentV1Tile=type;
+  v1TileLayers[type].addTo(v1Map);
+  ['dark','satellite','street'].forEach(t=>document.getElementById('v1tile-'+t)?.classList.toggle('active',t===type));
+}
+
+function toggleMinimap(){
+  v1MapOpen=!v1MapOpen;
+  document.getElementById('minimapBody').classList.toggle('collapsed',!v1MapOpen);
+  document.getElementById('minimapToggleBtn').textContent=v1MapOpen?'▼ Collapse':'▶ Expand';
+  if(v1MapOpen&&v1Map)setTimeout(()=>v1Map.invalidateSize(),100);
+}
+
+// Listen for planned EV route
+db.ref('v4/emergency/plannedRoute').on('value',snap=>{
+  const d=snap.val();
+  if(!v1Map)return;
+  if(v1SyntrixRoute)v1SyntrixRoute.clearRoute();
+  if(!d||!d.coords||!d.coords.length){
+    document.getElementById('mmRouteInfo').textContent='No active route';
+    document.getElementById('mmProximity').textContent='—';
+    document.getElementById('routeOnRoadAlert').classList.remove('show');
+    // Hide ETA countdown
+    const etaEl=document.getElementById('v1EtaCountdown');
+    if(etaEl)etaEl.style.display='none';
+    return;
+  }
+  // Draw animated route with corridor using SyntrixRoute
+  v1SyntrixRoute.drawRoute(d.coords,{color:'#c6031a',weight:4,animated:true});
+  v1SyntrixRoute.drawCorridor(d.coords,60);
+  v1SyntrixRoute.addEndpointMarkers(d.origin,d.destination);
+  document.getElementById('mmRouteInfo').textContent=`${d.distKm}km · ETA ${d.etaMin}min`;
+
+  // ETA Countdown
+  const etaEl=document.getElementById('v1EtaCountdown');
+  if(etaEl){
+    etaEl.style.display='flex';
+    const etaValEl=document.getElementById('v1EtaValue');
+    v1SyntrixRoute.startEtaCountdown(d.etaMin,'v1EtaValue');
+  }
+
+  // Fit map to show route + my position
+  if(d.coords&&d.coords.length){
+    const bounds=L.latLngBounds(d.coords);
+    if(myLat!==null)bounds.extend([myLat,myLng]);
+    v1Map.fitBounds(bounds,{padding:[20,20]});
+  }
+
+  // Check proximity
+  checkRouteProximity(d.coords);
+});
+
+function checkRouteProximity(coords){
+  if(myLat===null||!coords)return;
+  let minDist=Infinity;
+  coords.forEach(c=>{
+    const d=haversine(myLat,myLng,c[0],c[1]);
+    if(d<minDist)minDist=d;
+  });
+  const near=minDist<=ROUTE_PROXIMITY_M;
+  document.getElementById('mmProximity').textContent=near?'⚠️ '+Math.round(minDist)+'m (NEAR!)':Math.round(minDist)+'m';
+  const alertEl=document.getElementById('routeOnRoadAlert');
+  alertEl.classList.toggle('show',near);
+  if(near)document.getElementById('routeOnRoadSub').textContent=
+    'EV route passes '+Math.round(minDist)+'m from your location — stay alert and prepare to yield';
+}
+
+// Update my position marker on mini-map
+function updateV1MyMarker(){
+  if(!v1Map||myLat===null)return;
+  if(v1MyMarker)v1Map.removeLayer(v1MyMarker);
+  v1MyMarker=L.circleMarker([myLat,myLng],{radius:9,color:'#00e0ff',fillColor:'#00e0ff',fillOpacity:.85,weight:2})
+    .addTo(v1Map).bindPopup('🚗 Your Position');
+  if(!v1Map._myPosSet){v1Map.setView([myLat,myLng],14);v1Map._myPosSet=true;}
+  // Re-check proximity whenever we move
+  db.ref('v4/emergency/plannedRoute').once('value',s=>{
+    const d=s.val();
+    if(d&&d.coords)checkRouteProximity(d.coords);
+  });
+}
+
+// EV live position on mini-map
+DB.emergency.on('value',snap=>{
+  const d=snap.val();
+  if(!v1Map)return;
+  if(v1EvMarker){v1Map.removeLayer(v1EvMarker);v1EvMarker=null;}
+  if(!d||!d.active||d.lat==null)return;
+  v1EvMarker=L.circleMarker([d.lat,d.lng],{radius:9,color:'#c6031a',fillColor:'#c6031a',fillOpacity:1,weight:2})
+    .addTo(v1Map).bindPopup('🚨 Emergency Vehicle');
+});
+
+// Hook GPS to update marker (extend existing onPos)
+const _v1OnPosOrig=window.onPos;
+window._v1GPSHook=function(lat,lng){
+  updateV1MyMarker();
+};
 
 // SW registration
 if ('serviceWorker' in navigator) {
