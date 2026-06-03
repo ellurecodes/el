@@ -130,6 +130,33 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .li-v{border-color:var(--primary);color:rgba(0,227,131,.85)}
 .li-w{border-color:var(--yellow);color:rgba(255,170,0,.85)}
 
+/* YIELD TOP BANNER — FIXED AT TOP */
+.yield-top-banner{
+  display:none;
+  position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:linear-gradient(135deg,#1a0005,#2d0008,#1a0005);
+  border-bottom:3px solid #c6031a;
+  box-shadow:0 4px 32px rgba(198,3,26,.7);
+  animation:yieldTopPulse 0.8s ease-in-out infinite;
+}
+.yield-top-banner.show{display:block}
+@keyframes yieldTopPulse{
+  0%,100%{background:linear-gradient(135deg,#1a0005,#2d0008,#1a0005)}
+  50%{background:linear-gradient(135deg,#2d0009,#420010,#2d0009);box-shadow:0 4px 48px rgba(198,3,26,.95)}
+}
+.yield-top-inner{display:flex;align-items:center;gap:12px;padding:12px 18px;}
+.yield-top-arrow{font-size:3rem;line-height:1;filter:drop-shadow(0 0 20px #ff2244);flex-shrink:0;}
+.yield-top-arrow.bounce-left{animation:yieldBounceL 0.6s ease-in-out infinite}
+.yield-top-arrow.bounce-right{animation:yieldBounceR 0.6s ease-in-out infinite}
+@keyframes yieldBounceL{0%,100%{transform:translateX(0)}50%{transform:translateX(-10px)}}
+@keyframes yieldBounceR{0%,100%{transform:translateX(0)}50%{transform:translateX(10px)}}
+.yield-top-texts{display:flex;flex-direction:column;gap:2px;flex:1}
+.yield-top-tag{font-family:'JetBrains Mono',monospace;font-size:.46rem;font-weight:700;color:rgba(255,100,120,.9);letter-spacing:.16em;text-transform:uppercase;}
+.yield-top-label{font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:900;color:#fff;letter-spacing:.04em;line-height:1;text-shadow:0 0 20px rgba(255,80,80,.9),0 2px 4px rgba(0,0,0,.8);}
+.yield-top-sub{font-size:.56rem;color:rgba(219,228,232,0.65);margin-top:2px}
+.yield-top-dist{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:#ff7080;text-align:right;line-height:1;flex-shrink:0;}
+.yield-top-dist-label{font-size:.42rem;color:rgba(219,228,232,0.45);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;text-align:right}
+
 .page-footer{text-align:center;padding:12px;font-family:'JetBrains Mono',monospace;font-size:.52rem;color:rgba(132,149,134,.4)}
 
 .gps-overlay{position:fixed;inset:0;background:rgba(13,21,24,.97);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999;padding:32px;text-align:center}
@@ -162,7 +189,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 .ts-btn:hover:not(.active){background:rgba(255,255,255,.08);color:var(--text)}
 </style>
 </head>
-<body>
+<body id="mainBody">
+
+<!-- YIELD TOP BANNER — fixed to top, shown when EV in range -->
+<div class="yield-top-banner" id="yieldTopBanner">
+  <div class="yield-top-inner">
+    <div class="yield-top-arrow bounce-left" id="yieldTopArrow">←</div>
+    <div class="yield-top-texts">
+      <div class="yield-top-tag">⚠️ EMERGENCY — YIELD NOW</div>
+      <div class="yield-top-label" id="yieldTopLabel">MOVE LEFT</div>
+      <div class="yield-top-sub">Pull over immediately · Give way to emergency vehicle</div>
+    </div>
+    <div class="yield-top-dist">
+      <div id="yieldTopDist">—m</div>
+      <div class="yield-top-dist-label">EV DISTANCE</div>
+    </div>
+  </div>
+</div>
 
 <div class="conn-bar">
   <div class="conn-dot" id="connDot"></div>
@@ -284,7 +327,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/route-utils.js"></script>
+<script src="route-utils.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -305,7 +348,23 @@ let myLat=null,myLng=null,myAcc=null;
 let gpsFixCount=0,aCtx;
 let evActive=false;
 let alertPlaying=false;
-const MY_DB_REF=DB.vehicle1; // vehicle1 node (change to vehicle2 for second phone)
+const MY_DB_REF=DB.vehicle1;
+let _lastEvSnap=null; // cache for GPS re-eval
+
+// ── TOP FIXED BANNER HELPERS ──────────────────────────────
+function showYieldBanner(isLeft,dist){
+  const ytb=document.getElementById('yieldTopBanner');
+  ytb.style.display='block';
+  document.getElementById('yieldTopArrow').textContent=isLeft?'←':'→';
+  document.getElementById('yieldTopArrow').className='yield-top-arrow '+(isLeft?'bounce-left':'bounce-right');
+  document.getElementById('yieldTopLabel').textContent=isLeft?'MOVE LEFT':'MOVE RIGHT';
+  document.getElementById('yieldTopDist').textContent=dist+'m';
+  document.getElementById('mainBody').style.paddingTop=(ytb.offsetHeight||80)+'px';
+}
+function hideYieldBanner(){
+  document.getElementById('yieldTopBanner').style.display='none';
+  document.getElementById('mainBody').style.paddingTop='0';
+}
 
 // ── GPS ───────────────────────────────────────────────────────
 function startGPS(){
@@ -320,7 +379,8 @@ function onPos(p){
   myLat=kalmanLat.filter(p.coords.latitude);
   myLng=kalmanLng.filter(p.coords.longitude);
   myAcc=Math.round(p.coords.accuracy);
-
+  // Re-evaluate EV when GPS becomes available (fixes timing bug)
+  if(_lastEvSnap!==null) processEvData(_lastEvSnap);
   document.getElementById('gpsMode').textContent='🟢 GPS Active';
   document.getElementById('dLat').textContent=myLat.toFixed(6)+'°';
   document.getElementById('dLng').textContent=myLng.toFixed(6)+'°';
@@ -328,9 +388,8 @@ function onPos(p){
   accEl.textContent='±'+myAcc+'m';
   accEl.className='dg-val '+(myAcc<10?'good':myAcc<25?'warn':'bad');
   document.getElementById('gpsInfo').textContent=myLat.toFixed(5)+'°N';
-
-  // Push to Firebase
   MY_DB_REF.set({lat:myLat,lng:myLng,accuracy:myAcc,t:firebase.database.ServerValue.TIMESTAMP});
+  updateV1MyMarker();
 }
 
 function onErr(e){
@@ -338,12 +397,14 @@ function onErr(e){
   document.getElementById('gpsInfo').textContent='GPS error';
 }
 
-// ── EV LISTENER ───────────────────────────────────────────────
-DB.emergency.on('value',snap=>{
-  const d=snap.val();
-  if(!d||!d.active||d.lat==null){
-    // EV offline
+// ── EV DATA PROCESSOR ─────────────────────────────────────────
+function processEvData(d){
+  const isStale=d&&d.t&&(Date.now()-d.t>45000);
+  const isActive=d&&d.active&&!isStale;
+
+  if(!isActive||d.lat==null){
     evActive=false;alertPlaying=false;
+    hideYieldBanner();
     document.getElementById('alertBanner').classList.remove('show');
     document.getElementById('standbyCard').style.display='block';
     document.getElementById('evInfoRow').style.display='none';
@@ -353,19 +414,18 @@ DB.emergency.on('value',snap=>{
     document.getElementById('v2vStatus').textContent='Idle';
     document.getElementById('v2vStatus').className='dg-val';
     MY_DB_REF.update({alert:false,yield:false});
-    if(evActive)addLog('v','✅ EV cleared — road normal');
     return;
   }
 
   evActive=true;
-  document.getElementById('evType').textContent=d.type?.toUpperCase()||'EV';
+  document.getElementById('evType').textContent=(d.type||'EV').toUpperCase();
   document.getElementById('evSpd').textContent=(d.speed||0)+' km/h';
 
   if(myLat!==null){
     const dist=haversine(myLat,myLng,d.lat,d.lng);
     document.getElementById('evDist').textContent=dist+'m';
     document.getElementById('alertDist').textContent=dist+'m away';
-    document.getElementById('alertType').textContent=(d.type?.toUpperCase()||'EV')+' — '+(d.speed||0)+' km/h heading '+bearingToDir(d.heading||0);
+    document.getElementById('alertType').textContent=(d.type||'EV').toUpperCase()+' — '+(d.speed||0)+' km/h heading '+bearingToDir(d.heading||0);
 
     const inRange=dist<=RANGE_V2V;
     document.getElementById('v2vStatus').textContent=inRange?'🔴 IN RANGE':dist+'m away';
@@ -374,33 +434,53 @@ DB.emergency.on('value',snap=>{
     if(inRange){
       const side=getYieldSide(d.lat,d.lng,d.heading||0,myLat,myLng);
       const isLeft=side==='LEFT';
+
+      // ── FIXED TOP BANNER (always visible) ──
+      showYieldBanner(isLeft,dist);
+
+      // ── In-banner arrow ──
       const yieldDirEl=document.getElementById('yieldDir');
       yieldDirEl.textContent=isLeft?'←':'→';
       yieldDirEl.className='yield-dir'+(isLeft?'':' right');
       document.getElementById('yieldLabel').textContent='MOVE '+(isLeft?'LEFT':'RIGHT');
-      // Radar bar: 0m = 100%, RANGE_V2V = 0%
+
+      // ── Radar bar ──
       const pct=Math.min(100,Math.round((1-dist/RANGE_V2V)*100));
       document.getElementById('radarFill').style.width=pct+'%';
       document.getElementById('radarPct').textContent=pct+'%';
+
+      // ── Show alert banner ──
       document.getElementById('alertBanner').classList.add('show');
       document.getElementById('standbyCard').style.display='none';
       document.getElementById('evInfoRow').style.display='flex';
-      document.getElementById('evInfoLabel').textContent='EV '+dist+'m away — '+(isLeft?'pull LEFT':'pull RIGHT');
+      document.getElementById('evInfoLabel').textContent='EV '+dist+'m away — '+(isLeft?'PULL LEFT ←':'PULL RIGHT →');
       MY_DB_REF.update({alert:true,yield:false,evDist:dist,yieldSide:side});
+
       if(!alertPlaying){
         alertPlaying=true;
         beep(800,.2);beep(1000,.15);
-        // Mobile vibration
         if('vibrate' in navigator) navigator.vibrate([200,100,200,100,400]);
-        addLog('a','⚠️ EV IN RANGE: '+dist+'m — YIELD '+(isLeft?'LEFT':'RIGHT'));
+        addLog('a','⚠️ EV IN RANGE: '+dist+'m — YIELD '+(isLeft?'LEFT ←':'RIGHT →'));
       }
+    } else {
+      // Out of range — hide everything
+      hideYieldBanner();
       document.getElementById('alertBanner').classList.remove('show');
       document.getElementById('standbyCard').style.display='block';
       document.getElementById('evInfoRow').style.display='none';
       MY_DB_REF.update({alert:false,yield:false});
       alertPlaying=false;
     }
+  } else {
+    document.getElementById('v2vStatus').textContent='🟡 EV ACTIVE (No GPS)';
+    document.getElementById('v2vStatus').className='dg-val warn';
   }
+}
+
+// ── EV LISTENER ─────────────────────────────────────────
+DB.emergency.on('value',snap=>{
+  _lastEvSnap=snap.val();
+  processEvData(_lastEvSnap);
 });
 
 // ── FIREBASE ──────────────────────────────────────────────────
@@ -437,6 +517,41 @@ function addLog(t,m){
 
 // Cleanup on exit
 window.addEventListener('beforeunload',()=>MY_DB_REF.remove());
+// ── SHARED SVG ICON FUNCTIONS (same as Admin map) ────────────
+function evIcon(type){
+  const cols={police:'#2266ff',fire:'#ff6600',ambulance:'#c6031a'};
+  const c=cols[type]||'#c6031a';
+  return L.divIcon({className:'',html:`
+    <div style="position:relative;filter:drop-shadow(0 0 12px ${c})">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 72" width="36" height="58">
+        <rect x="15" y="1" width="14" height="7" rx="3" fill="${c}" opacity="1"><animate attributeName="opacity" values="1;0.1;1" dur=".5s" repeatCount="indefinite"/></rect>
+        <ellipse cx="22" cy="15" rx="13" ry="7" fill="${c}"/>
+        <circle cx="22" cy="20" r="9" fill="#e8b690"/>
+        <rect x="13" y="29" width="18" height="22" rx="4" fill="${c}"/>
+        <rect x="16" y="32" width="12" height="8" rx="2" fill="white" opacity=".9"/>
+        <text x="22" y="39" text-anchor="middle" font-size="5" font-weight="bold" fill="${c}">EMG</text>
+        <rect x="12" y="62" width="11" height="7" rx="2" fill="#0d1518"/>
+        <rect x="21" y="62" width="11" height="7" rx="2" fill="#0d1518"/>
+      </svg>
+      <div style="position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);background:${c};color:#fff;font-size:7px;font-weight:700;padding:2px 5px;border-radius:7px;white-space:nowrap;font-family:'JetBrains Mono',monospace;border:1px solid rgba(255,255,255,.3)">${(type||'EMG').toUpperCase()}</div>
+    </div>`,iconSize:[36,74],iconAnchor:[18,64],popupAnchor:[0,-64]});
+}
+function carIcon(col,lbl,yielded){
+  const c=yielded?'#00e383':col;
+  return L.divIcon({className:'',html:`
+    <div style="position:relative;text-align:center;filter:drop-shadow(0 2px 8px ${c}80)">
+      <div style="position:absolute;top:-17px;left:50%;transform:translateX(-50%);background:${c};color:#fff;font-size:8px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;font-family:'JetBrains Mono',monospace">${yielded?'✅ YIELD':lbl}</div>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 28" width="44" height="26">
+        <rect x="2" y="10" width="44" height="16" rx="3" fill="${c}"/>
+        <rect x="9" y="4" width="26" height="10" rx="3" fill="${c}"/>
+        <rect x="10" y="5" width="11" height="7" rx="2" fill="rgba(140,200,255,.45)"/>
+        <rect x="22" y="5" width="11" height="7" rx="2" fill="rgba(140,200,255,.45)"/>
+        <circle cx="12" cy="26" r="5" fill="#0d1518"/><circle cx="12" cy="26" r="2.5" fill="#333"/>
+        <circle cx="36" cy="26" r="5" fill="#0d1518"/><circle cx="36" cy="26" r="2.5" fill="#333"/>
+      </svg>
+    </div>`,iconSize:[44,43],iconAnchor:[22,26]});
+}
+
 window.addEventListener('load',()=>{startGPS();initV1Map();});
 
 // ── V1 MINI-MAP + ROUTE DISPLAY ─────────────────────────────
@@ -473,43 +588,59 @@ function toggleMinimap(){
   if(v1MapOpen&&v1Map)setTimeout(()=>v1Map.invalidateSize(),100);
 }
 
-// Listen for planned EV route
-db.ref('v4/emergency/plannedRoute').on('value',snap=>{
-  const d=snap.val();
+// Listen for planned EV route — with fallback to v4/activeRoute
+function drawV1Route(d){
   if(!v1Map)return;
   if(v1SyntrixRoute)v1SyntrixRoute.clearRoute();
   if(!d||!d.coords||!d.coords.length){
     document.getElementById('mmRouteInfo').textContent='No active route';
     document.getElementById('mmProximity').textContent='—';
     document.getElementById('routeOnRoadAlert').classList.remove('show');
-    // Hide ETA countdown
     const etaEl=document.getElementById('v1EtaCountdown');
     if(etaEl)etaEl.style.display='none';
     return;
   }
-  // Draw animated route with corridor using SyntrixRoute
   v1SyntrixRoute.drawRoute(d.coords,{color:'#c6031a',weight:4,animated:true});
   v1SyntrixRoute.drawCorridor(d.coords,60);
   v1SyntrixRoute.addEndpointMarkers(d.origin,d.destination);
   document.getElementById('mmRouteInfo').textContent=`${d.distKm}km · ETA ${d.etaMin}min`;
-
-  // ETA Countdown
   const etaEl=document.getElementById('v1EtaCountdown');
   if(etaEl){
     etaEl.style.display='flex';
-    const etaValEl=document.getElementById('v1EtaValue');
     v1SyntrixRoute.startEtaCountdown(d.etaMin,'v1EtaValue');
   }
-
-  // Fit map to show route + my position
   if(d.coords&&d.coords.length){
     const bounds=L.latLngBounds(d.coords);
     if(myLat!==null)bounds.extend([myLat,myLng]);
     v1Map.fitBounds(bounds,{padding:[20,20]});
   }
-
-  // Check proximity
   checkRouteProximity(d.coords);
+}
+
+let _v1LastRoute=null;
+db.ref('v4/emergency/plannedRoute').on('value',snap=>{
+  const d=snap.val();
+  if(d&&d.coords&&d.coords.length){
+    _v1LastRoute=d;
+    drawV1Route(d);
+  } else {
+    // Try persistent activeRoute fallback before clearing
+    db.ref('v4/activeRoute').once('value',snap2=>{
+      const d2=snap2.val();
+      if(d2&&d2.coords&&d2.coords.length){
+        _v1LastRoute=d2;
+        drawV1Route(d2);
+      } else {
+        _v1LastRoute=null;
+        drawV1Route(null);
+      }
+    });
+  }
+});
+// Also keep route updated from activeRoute (handles EV offline case)
+db.ref('v4/activeRoute').on('value',snap=>{
+  const d=snap.val();
+  if(!_v1LastRoute&&d&&d.coords&&d.coords.length){drawV1Route(d);}
 });
 
 function checkRouteProximity(coords){
@@ -530,14 +661,15 @@ function checkRouteProximity(coords){
 // Update my position marker on mini-map
 function updateV1MyMarker(){
   if(!v1Map||myLat===null)return;
-  if(v1MyMarker)v1Map.removeLayer(v1MyMarker);
-  v1MyMarker=L.circleMarker([myLat,myLng],{radius:9,color:'#00e0ff',fillColor:'#00e0ff',fillOpacity:.85,weight:2})
-    .addTo(v1Map).bindPopup('🚗 Your Position');
+  if(v1MyMarker){v1Map.removeLayer(v1MyMarker);v1MyMarker=null;}
+  v1MyMarker=L.marker([myLat,myLng],{icon:carIcon('#00e0ff','V1',false),zIndexOffset:500})
+    .addTo(v1Map).bindPopup('🚗 Your Position (V1)');
   if(!v1Map._myPosSet){v1Map.setView([myLat,myLng],14);v1Map._myPosSet=true;}
   // Re-check proximity whenever we move
   db.ref('v4/emergency/plannedRoute').once('value',s=>{
     const d=s.val();
     if(d&&d.coords)checkRouteProximity(d.coords);
+    else db.ref('v4/activeRoute').once('value',s2=>{const d2=s2.val();if(d2&&d2.coords)checkRouteProximity(d2.coords);});
   });
 }
 
@@ -547,7 +679,7 @@ DB.emergency.on('value',snap=>{
   if(!v1Map)return;
   if(v1EvMarker){v1Map.removeLayer(v1EvMarker);v1EvMarker=null;}
   if(!d||!d.active||d.lat==null)return;
-  v1EvMarker=L.circleMarker([d.lat,d.lng],{radius:9,color:'#c6031a',fillColor:'#c6031a',fillOpacity:1,weight:2})
+  v1EvMarker=L.marker([d.lat,d.lng],{icon:evIcon(d.type||'ambulance'),zIndexOffset:1000})
     .addTo(v1Map).bindPopup('🚨 Emergency Vehicle');
 });
 
@@ -571,6 +703,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="/ai-chat.js"></script>
+<script src="ai-chat.js"></script>
 </body>
 </html>

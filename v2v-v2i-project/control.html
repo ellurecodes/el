@@ -11,7 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/route-utils.js"></script>
+<script src="route-utils.js"></script>
 <style>
 /* INSTANT AUTH GUARD */
 body{visibility:var(--body-vis,hidden)}
@@ -580,7 +580,11 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
       <div class="no-ev-overlay" id="noEvOverlay">
         <h3>📡 Awaiting Emergency Vehicle</h3>
         <p>Open emergency.html on a mobile device<br>and activate emergency broadcast mode</p>
+        <button id="clearStaleEvBtn" onclick="clearStaleEv()" style="display:none;margin-top:14px;padding:8px 20px;border-radius:.6rem;border:1px solid rgba(198,3,26,.4);background:rgba(198,3,26,.12);color:#ff6070;font-size:.72rem;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;align-items:center;gap:6px">
+          🗑️ Clear Stale EV Data
+        </button>
       </div>
+
     </div><!-- /map -->
 
     <!-- RIGHT PANEL -->
@@ -670,8 +674,12 @@ input[type=range]{width:100%;accent-color:var(--primary);cursor:pointer;height:4
 
       <!-- LOG PANEL -->
       <div class="panel-content" id="panel-log">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-shrink:0">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.52rem;color:var(--outline);letter-spacing:.07em;text-transform:uppercase">📜 Live Session Events</span>
+          <button onclick="clearEventLog()" style="padding:3px 8px;border-radius:.4rem;border:1px solid rgba(255,255,255,.1);background:rgba(255,0,0,.06);color:#ff6070;font-size:.55rem;cursor:pointer;font-family:'Inter',sans-serif">Clear</button>
+        </div>
         <div id="logBox">
-          <div class="log-item li-info"><span class="log-time">--:--:--</span><span>Command center online</span></div>
+          <div class="log-item li-info"><span class="log-time">--:--:--</span><span>Command center online — session started</span></div>
         </div>
       </div>
 
@@ -908,17 +916,27 @@ function sigIcon(evNear){
 // ── FIREBASE LISTENERS ────────────────────────────────────────
 DB.emergency.on('value',s=>{
   const d=s.val();
-  document.getElementById('noEvOverlay').style.display=d&&d.active?'none':'flex';
 
-  if(!d||!d.active||d.lat==null){
+  // ── STALENESS CHECK: if last update > 45s ago, treat as offline ──
+  const STALE_MS = 45000;
+  const isStale = d && d.t && (Date.now() - d.t > STALE_MS);
+  const isActive = d && d.active && !isStale;
+
+  // Show "Clear Stale" button if data is stale
+  const clearBtn = document.getElementById('clearStaleEvBtn');
+  if(clearBtn) clearBtn.style.display = (d && d.active && isStale) ? 'inline-flex' : 'none';
+
+  document.getElementById('noEvOverlay').style.display = isActive ? 'none' : 'flex';
+
+  if(!isActive || d.lat == null){
     if(evM){map.removeLayer(evM);evM=null;}
     if(v2vCirc){map.removeLayer(v2vCirc);v2vCirc=null;}
     if(v2iCirc){map.removeLayer(v2iCirc);v2iCirc=null;}
     if(routeLine){map.removeLayer(routeLine);routeLine=null;}
     evLat=null;evLng=null;
     document.getElementById('evBadge').className='uc-badge badge-off';
-    document.getElementById('evBadge').textContent='Offline';
-    document.getElementById('evInfo').textContent='Not active';
+    document.getElementById('evBadge').textContent= isStale ? 'Stale' : 'Offline';
+    document.getElementById('evInfo').textContent= isStale ? '⚠️ Stale data — EV disconnected' : 'Not active';
     document.getElementById('ucEV').classList.remove('alive');
     document.getElementById('evPos').textContent='EV: Standby';
     document.getElementById('evSpd').textContent='—';
@@ -1011,15 +1029,17 @@ DB.signal.on('value',s=>{
 
 DB.vehicle1.on('value',s=>{
   const d=s.val();
-  if(!d||d.lat==null){
+  const isStale = d && d.t && (Date.now()-d.t > 30000);
+  if(!d||d.lat==null||isStale){
     if(v1M){map.removeLayer(v1M);v1M=null;}
-    document.getElementById('v1Badge').className='uc-badge badge-off';document.getElementById('v1Badge').textContent='Offline';
+    document.getElementById('v1Badge').className='uc-badge badge-off';
+    document.getElementById('v1Badge').textContent=isStale?'Stale':'Offline';
     document.getElementById('v1Info').textContent='Not connected';
     unitsOnline.delete('v1');updUnits();return;
   }
   v1Lat=d.lat;v1Lng=d.lng;unitsOnline.add('v1');updUnits();
   if(v1Tracker) v1Tracker.processReading(d.lat, d.lng, d.accuracy||10);
-  if(!v1M)v1M=L.marker([d.lat,d.lng],{icon:carIcon('#00e0ff','V1',d.yield)}).addTo(map).bindPopup('<b>🚗 Vehicle 1</b>');
+  if(!v1M)v1M=L.marker([d.lat,d.lng],{icon:carIcon('#00e0ff','V1',d.yield)}).addTo(map).bindPopup('<b>🚗 Civic Driver 1</b>');
   else{v1M.setLatLng([d.lat,d.lng]);v1M.setIcon(carIcon('#00e0ff','V1',d.yield));}
   document.getElementById('v1Badge').className='uc-badge '+(d.yield?'badge-green':d.alert?'badge-red':'badge-cyan');
   document.getElementById('v1Badge').textContent=d.yield?'✅ Yielded':d.alert?'⚠️ Alert':'Online';
@@ -1031,15 +1051,17 @@ DB.vehicle1.on('value',s=>{
 
 DB.vehicle2.on('value',s=>{
   const d=s.val();
-  if(!d||d.lat==null){
+  const isStale = d && d.t && (Date.now()-d.t > 30000);
+  if(!d||d.lat==null||isStale){
     if(v2M){map.removeLayer(v2M);v2M=null;}
-    document.getElementById('v2Badge').className='uc-badge badge-off';document.getElementById('v2Badge').textContent='Offline';
+    document.getElementById('v2Badge').className='uc-badge badge-off';
+    document.getElementById('v2Badge').textContent=isStale?'Stale':'Offline';
     document.getElementById('v2Info').textContent='Not connected';
     unitsOnline.delete('v2');updUnits();return;
   }
   v2Lat=d.lat;v2Lng=d.lng;unitsOnline.add('v2');updUnits();
   if(v2Tracker) v2Tracker.processReading(d.lat, d.lng, d.accuracy||10);
-  if(!v2M)v2M=L.marker([d.lat,d.lng],{icon:carIcon('#aa44ff','V2',d.yield)}).addTo(map).bindPopup('<b>🚙 Vehicle 2</b>');
+  if(!v2M)v2M=L.marker([d.lat,d.lng],{icon:carIcon('#aa44ff','V2',d.yield)}).addTo(map).bindPopup('<b>🚙 Civic Driver 2</b>');
   else{v2M.setLatLng([d.lat,d.lng]);v2M.setIcon(carIcon('#aa44ff','V2',d.yield));}
   document.getElementById('v2Badge').className='uc-badge '+(d.yield?'badge-green':d.alert?'badge-red':'badge-purple');
   document.getElementById('v2Badge').textContent=d.yield?'✅ Yielded':d.alert?'⚠️ Alert':'Online';
@@ -1049,16 +1071,36 @@ DB.vehicle2.on('value',s=>{
   if(evLat!==null)document.getElementById('aevV2').textContent=haversine(evLat,evLng,d.lat,d.lng)+'m';
 });
 
-DB.events.orderByChild('serverTime').limitToLast(100).on('child_added',s=>{
+// Only show events from THIS session (started when page loaded)
+const _sessionStartTime = Date.now() - 2000; // 2s buffer
+DB.events.orderByChild('serverTime').startAt(_sessionStartTime).limitToLast(50).on('child_added',s=>{
   const d=s.val();if(!d)return;
+  // Skip events older than session start (handles race condition)
+  if(d.serverTime && d.serverTime < _sessionStartTime) return;
   const box=document.getElementById('logBox');
   const el=document.createElement('div');
   const tm={alert:'li-alert',v2i:'li-ok',v2v:'li-warn',info:'li-info',done:'li-ok'};
   el.className='log-item '+(tm[d.type]||'li-info');
   el.innerHTML=`<span class="log-time">${d.timestamp?new Date(d.timestamp).toLocaleTimeString('en-IN',{hour12:false}):'—'}</span><span>${d.message||''}</span>`;
   box.prepend(el);
-  while(box.children.length>100)box.removeChild(box.lastChild);
+  while(box.children.length>80)box.removeChild(box.lastChild);
 });
+
+function clearEventLog(){
+  const box=document.getElementById('logBox');
+  box.innerHTML='<div class="log-item li-info"><span class="log-time">'+new Date().toLocaleTimeString('en-IN',{hour12:false})+'</span><span>Log cleared by admin</span></div>';
+}
+
+// Clear stale EV data from Firebase (admin only)
+function clearStaleEv(){
+  if(!confirm('Clear the stale EV data from Firebase? This will remove the old emergency vehicle entry.')) return;
+  db.ref('v4/emergency').remove().then(()=>{
+    logEvent('info','Admin cleared stale EV data from Firebase');
+    const btn = document.getElementById('clearStaleEvBtn');
+    if(btn) btn.style.display='none';
+  }).catch(err=>alert('Failed to clear: '+err.message));
+}
+
 
 // Users & admins
 const allUsers=[];
@@ -1073,13 +1115,10 @@ let plannedRouteLine=null,showPlannedRoute=true;
 let _adminSyntrixRoute=null;
 window._evRouteEtaMin=null;
 
-db.ref('v4/emergency/plannedRoute').on('value',snap=>{
-  const d=snap.val();
-  // Clear old route with SyntrixRoute engine
+function drawAdminRoute(d){
   if(_adminSyntrixRoute){_adminSyntrixRoute.clearRoute();}else{if(plannedRouteLine){map.removeLayer(plannedRouteLine);plannedRouteLine=null;}}
   document.getElementById('legendRoute').style.display='none';
   const btn=document.getElementById('routeToggleBtn');
-  // Remove old ETA row
   const oldETA=document.getElementById('evRouteETA');
   if(oldETA)oldETA.remove();
 
@@ -1091,7 +1130,6 @@ db.ref('v4/emergency/plannedRoute').on('value',snap=>{
   window._evRouteEtaMin=d.etaMin||null;
   window._evRouteRemaining=d.etaMin||null;
 
-  // Initialize SyntrixRoute engine if not done
   if(!_adminSyntrixRoute)_adminSyntrixRoute=new SyntrixRoute(map);
 
   if(showPlannedRoute){
@@ -1101,7 +1139,6 @@ db.ref('v4/emergency/plannedRoute').on('value',snap=>{
     document.getElementById('legendRoute').style.display='flex';
   }
 
-  // Show route info in EV card
   const evInfo=document.getElementById('evInfo');
   if(evInfo&&d.distKm){
     const etaRow=document.createElement('div');
@@ -1109,12 +1146,36 @@ db.ref('v4/emergency/plannedRoute').on('value',snap=>{
     etaRow.style.cssText='margin-top:5px;padding:4px 8px;border-radius:6px;background:rgba(198,3,26,.12);border:1px solid rgba(198,3,26,.25);font-size:.58rem;color:#ff7080;font-family:"JetBrains Mono",monospace;display:flex;justify-content:space-between;align-items:center';
     etaRow.innerHTML=`<span>🗺️ ${d.distKm}km</span><span id="adminEtaCountdown" style="font-weight:700">${d.etaMin}min</span>`;
     evInfo.appendChild(etaRow);
-    // Start countdown
     if(_adminSyntrixRoute)_adminSyntrixRoute.startEtaCountdown(d.etaMin,'adminEtaCountdown');
   }
 
   if(btn)btn.className='tb-btn danger';
   addLog('Route data updated: '+d.distKm+'km','li-ok');
+}
+
+let _adminLastRoute=null;
+db.ref('v4/emergency/plannedRoute').on('value',snap=>{
+  const d=snap.val();
+  if(d&&d.coords&&d.coords.length){
+    _adminLastRoute=d;
+    drawAdminRoute(d);
+  } else {
+    // Try persistent activeRoute fallback
+    db.ref('v4/activeRoute').once('value',snap2=>{
+      const d2=snap2.val();
+      if(d2&&d2.coords&&d2.coords.length){
+        _adminLastRoute=d2;
+        drawAdminRoute(d2);
+      } else {
+        _adminLastRoute=null;
+        drawAdminRoute(null);
+      }
+    });
+  }
+});
+db.ref('v4/activeRoute').on('value',snap=>{
+  const d=snap.val();
+  if(!_adminLastRoute&&d&&d.coords&&d.coords.length){drawAdminRoute(d);}
 });
 
 function togglePlannedRoute(){
@@ -1304,15 +1365,45 @@ function sendBroadcast(){
 function clearDB(){
   if(!confirm('Clear ALL V2X data from Firebase? This cannot be undone.'))return;
   db.ref('v4').remove();
+  db.ref('v4/activeRoute').remove(); // also clear persistent route
   logEvent('info','DB cleared by admin');
 }
 
 function resetAllUnits(){
-  DB.emergency.remove();
-  DB.signal.update({mode:'normal'});
-  DB.vehicle1.update({alert:false,yield:false});
-  DB.vehicle2.update({alert:false,yield:false});
-  logEvent('info','All units reset by admin');
+  if(!confirm('Reset all unit states? This clears EV, vehicles and route from Firebase.'))return;
+  // Multi-path update — works even if child nodes don’t yet exist
+  const batch={};
+  batch['v4/emergency/active']=false;
+  batch['v4/emergency/lat']=null;
+  batch['v4/emergency/lng']=null;
+  batch['v4/emergency/speed']=0;
+  batch['v4/signal/mode']='normal';
+  batch['v4/vehicle1/alert']=false;
+  batch['v4/vehicle1/yield']=false;
+  batch['v4/vehicle2/alert']=false;
+  batch['v4/vehicle2/yield']=false;
+  batch['v4/emergency/plannedRoute']=null;
+  batch['v4/activeRoute']=null;
+  db.ref().update(batch).then(()=>{
+    // Clear ALL map markers and visuals
+    if(_adminSyntrixRoute){_adminSyntrixRoute.clearRoute();}
+    if(plannedRouteLine){map.removeLayer(plannedRouteLine);plannedRouteLine=null;}
+    if(routeLine){map.removeLayer(routeLine);routeLine=null;}
+    if(evM){map.removeLayer(evM);evM=null;}
+    if(sigM){map.removeLayer(sigM);sigM=null;}
+    if(v1M){map.removeLayer(v1M);v1M=null;}
+    if(v2M){map.removeLayer(v2M);v2M=null;}
+    if(v2vCirc){map.removeLayer(v2vCirc);v2vCirc=null;}
+    if(v2iCirc){map.removeLayer(v2iCirc);v2iCirc=null;}
+    _adminLastRoute=null;
+    evLat=null;evLng=null;sigLat=null;sigLng=null;v1Lat=null;v1Lng=null;v2Lat=null;v2Lng=null;
+    unitsOnline.clear();updUnits();
+    addLog('All units reset by admin','li-ok');
+    logEvent('info','All units reset by admin');
+  }).catch(err=>{
+    alert('❌ Reset failed: '+err.message);
+    console.error('resetAllUnits error:',err);
+  });
 }
 
 function triggerEmergencyDispatch(){
@@ -1363,6 +1454,6 @@ db.ref('.info/connected').on('value',s=>{
 });
 
 </script>
-<script src="/ai-chat.js"></script>
+<script src="ai-chat.js"></script>
 </body>
 </html>

@@ -154,11 +154,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
     </div>
 
     <!-- Civic Driver -->
-    <div class="role-card card-civic" onclick="selectRole('vehicle1','vehicle1.html')">
+    <div class="role-card card-civic" onclick="selectRole('vehicle1','vehicle.html')">
       <div class="card-ico ico-civic">🚗</div>
       <div class="card-title">Civic Driver</div>
-      <div class="card-subtitle">NORMAL VEHICLE · V2V</div>
-      <div class="card-desc">Receive real-time V2V alerts from nearby emergency vehicles. Get directional yield instructions and proximity warnings.</div>
+      <div class="card-subtitle">NORMAL VEHICLE · V2V · AUTO SLOT</div>
+      <div class="card-desc">Receive real-time V2V alerts from nearby emergency vehicles. Get directional yield instructions and proximity warnings. Slot auto-assigned.</div>
       <div class="card-badge badge-instant">✅ INSTANT ACCESS</div>
     </div>
 
@@ -193,10 +193,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 <script src="firebase-config.js"></script>
 <script>
 
-// ── INIT ──────────────────────────────────────────────────────
+// ── INIT ────────────────────────────────────────────────
 const sess = getSession();
-if(!sess.user){window.location.href='login.html';throw 0;}
-
+if(!sess || !sess.user){
+  window.location.replace('login.html');
+  // Stop all further script execution
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;color:#00e383;background:#0d1518">Redirecting...</div>';
+  throw new Error('redirect');
+}
 document.getElementById('userName').textContent = sess.user || 'User';
 
 // Check approval status for EV and Signal roles
@@ -217,30 +221,51 @@ if(sess.uid){
   });
 }
 
-// ── ROLE SELECTION ────────────────────────────────────────────
-async function selectRole(role,url){
-  // Roles that need approval
-  if(role==='ev'&&sess.uid){
-    const snap=await db.ref('v4/users/'+sess.uid+'/evApproved').once('value');
-    if(!snap.val()&&!sess.isAdmin){
-      showToast('⚠️ Admin approval required for Emergency Responder role');
-      // Mark request
-      db.ref('v4/users/'+sess.uid).update({evRequested:true,name:sess.user,email:sess.email||''});
-      return;
+// ── ROLE SELECTION ─────────────────────────────────────────
+async function selectRole(role, url){
+  // Admins always bypass — go directly
+  if(sess.isAdmin){
+    setSession({role});
+    showToast('✅ Role set — launching...');
+    setTimeout(()=>window.location.href=url, 500);
+    return;
+  }
+
+  // Guest users (from login form non-Google) go directly
+  const isGuest = sess.uid && sess.uid.startsWith('guest_');
+  if(isGuest){
+    setSession({role});
+    showToast('✅ Welcome! Launching '+role+' mode...');
+    setTimeout(()=>window.location.href=url, 500);
+    return;
+  }
+
+  // Google-authenticated users: check Firebase approval for restricted roles
+  if(role === 'ev'){
+    const snap = await db.ref('v4/users/'+sess.uid+'/evApproved').once('value');
+    if(!snap.val()){
+      showToast('⚠️ EV role requires admin approval. Request submitted!');
+      db.ref('v4/users/'+sess.uid).update({
+        evRequested: true, name: sess.user, email: sess.email || '', uid: sess.uid
+      });
+      return; // Do NOT navigate — wait for approval
     }
   }
-  if(role==='signal'&&sess.uid){
-    const snap=await db.ref('v4/users/'+sess.uid+'/signalApproved').once('value');
-    if(!snap.val()&&!sess.isAdmin){
-      showToast('⚠️ Admin approval required for Signal Authority role');
-      db.ref('v4/users/'+sess.uid).update({signalRequested:true,name:sess.user,email:sess.email||''});
-      return;
+  if(role === 'signal'){
+    const snap = await db.ref('v4/users/'+sess.uid+'/signalApproved').once('value');
+    if(!snap.val()){
+      showToast('⚠️ Signal role requires admin approval. Request submitted!');
+      db.ref('v4/users/'+sess.uid).update({
+        signalRequested: true, name: sess.user, email: sess.email || '', uid: sess.uid
+      });
+      return; // Do NOT navigate — wait for approval
     }
   }
 
+  // All checks passed — go
   setSession({role});
-  showToast('✅ Role set — launching '+url.replace('.html','')+'...');
-  setTimeout(()=>window.location.href=url,600);
+  showToast('✅ Role set — launching...');
+  setTimeout(()=>window.location.href=url, 500);
 }
 
 function showToast(msg){
@@ -263,6 +288,6 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
-<script src="/ai-chat.js"></script>
+<script src="ai-chat.js"></script>
 </body>
 </html>

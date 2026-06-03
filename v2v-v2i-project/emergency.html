@@ -579,7 +579,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/route-utils.js"></script>
+<script src="route-utils.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -587,12 +587,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text)}
 <script>
 
 // ── AUTH GUARD ────────────────────────────────────────────────
-(async()=>{
-  const ok=await requireAuth(['ev','admin']);
-  if(!ok)return;
-  const s=getSession();
-  document.getElementById('logoutBtn').textContent='⏏ '+(s.user||'Sign Out');
-  addLog('s','🚨 EV Node ready · '+( s.user||'driver'));
+(function(){
+  const s = getSession();
+  if(!s.user){
+    window.location.replace('login.html?target=emergency.html');
+    return;
+  }
+  document.getElementById('logoutBtn').textContent = '⏏ ' + (s.user || 'Sign Out');
+  // Greet after DOM ready (addLog defined below)
+  setTimeout(()=>addLog('s','🚨 EV Node ready · '+(s.user||'driver')), 0);
 })();
 
 // ── STATE ─────────────────────────────────────────────────────
@@ -691,7 +694,8 @@ function toggleActivate(){
     ico.textContent='🚨';lbl.textContent='ACTIVATE';sub.textContent='Tap to broadcast';
     siren.classList.remove('on');
     pillMode.textContent='🚨 STANDBY';pillMode.classList.remove('on');
-    DB.emergency.remove();
+    // Only mark inactive — keep plannedRoute intact so dashboards keep showing it
+    DB.emergency.update({active:false,lat:null,lng:null,speed:0});
     addLog('s','✅ EV deactivated');
     logEvent('done','Emergency vehicle deactivated');
     if(window._wakeOnDeactivate) window._wakeOnDeactivate();
@@ -700,7 +704,8 @@ function toggleActivate(){
 
 function sendPos(lat,lng,acc,speed,heading){
   const s=getSession();
-  DB.emergency.set({
+  // Use update() NOT set() — so plannedRoute child is not wiped on every GPS tick
+  DB.emergency.update({
     active:true,type:evType,
     lat,lng,accuracy:acc,speed,heading,
     rawAccuracy:acc,kalmanFiltered:true,
@@ -932,16 +937,18 @@ async function calculateRoute(){
       }).join('');
       document.getElementById('turnsPanel').style.display='block';
     }
-    // Save to Firebase for all dashboards
+    // Save to Firebase for all dashboards (also to v4/activeRoute which persists even when EV goes offline)
     const reduced=SyntrixRoute.reduceCoords(coords,150);
-    db.ref('v4/emergency/plannedRoute').set({
+    const routePayload={
       coords:reduced,
       origin:routeOrigin,
       destination:routeDestination,
       distKm:parseFloat(distKm),
       etaMin,
       ts:Date.now()
-    });
+    };
+    db.ref('v4/emergency/plannedRoute').set(routePayload);
+    db.ref('v4/activeRoute').set(routePayload); // persistent backup
     // Start ETA countdown in emergency panel
     if(window._evSyntrixRoute)window._evSyntrixRoute.startEtaCountdown(etaMin,'riETA');
     addLog('v',`🗺️ Route: ${distKm}km · ETA ${etaMin}min · ${steps.length} turns`);
@@ -986,6 +993,7 @@ function clearRoute(){
   document.getElementById('turnsPanel').style.display='none';
   document.getElementById('mapHint').textContent='Tap a button above, then tap the map to set points';
   db.ref('v4/emergency/plannedRoute').remove();
+  db.ref('v4/activeRoute').remove(); // also clear persistent backup
   addLog('s','🗺️ Route cleared');
 }
 
@@ -1221,6 +1229,6 @@ setInterval(()=>{
 window.addEventListener('load',()=>{renderRouteHistory();});
 
 </script>
-<script src="/ai-chat.js"></script>
+<script src="ai-chat.js"></script>
 </body>
 </html>

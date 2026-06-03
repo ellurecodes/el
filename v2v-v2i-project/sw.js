@@ -10,7 +10,7 @@
 //  Offline fallback → /login
 // ================================================================
 
-const VERSION     = 'syntrix-v2x-v3.0';
+const VERSION     = 'syntrix-v2x-v4.0'; // bumped — forces old cache purge
 const OFFLINE_URL = '/login';
 
 // Clean URL paths (Firebase cleanUrls: true strips .html)
@@ -107,9 +107,9 @@ self.addEventListener('fetch', e => {
     return e.respondWith(cacheFirst(request, 24 * 60 * 60 * 1000));
   }
 
-  // HTML / Navigation — stale-while-revalidate
+  // HTML / Navigation — network first (always fetch latest)
   if (request.mode === 'navigate' || url.pathname.endsWith('.html')) {
-    return e.respondWith(staleWhileRevalidate(request));
+    return e.respondWith(networkFirst(request, 8000));
   }
 
   // Default — network first
@@ -187,4 +187,4 @@ self.addEventListener('message', e => {
   }
 });
 
-console.log('[SW] Syntrix V2X Service Worker v2.0 installed');
+console.log('[SW] Syntrix V2X Service Worker v4.0 installed');

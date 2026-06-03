@@ -32,7 +32,7 @@ A real-time V2V (Vehicle-to-Vehicle) and V2I (Vehicle-to-Infrastructure) smart c
 - Control Center (/control): Admin dashboard — live Leaflet map, all unit markers, V2V/V2I range circles, route history, GPS accuracy dashboard, user management, pending role approvals, system broadcast.
 - Emergency (/emergency): EV driver — activate GPS broadcast, siren strip, V2I signal preemption tracking, V2V nearby vehicles. Wake Lock keeps screen on.
 - Signal (/signal): Signal operator — receives V2I preemption from EV within 50m. Normal cycle: RED 8s → GREEN 5s → YELLOW 2s.
-- Vehicle1 & Vehicle2 (/vehicle1, /vehicle2): Civic drivers — get V2V yield alerts when EV within 25m.
+- Vehicle (/vehicle): Unified Civic Driver — auto-assigns slot 1 or 2 from Firebase. Gets V2V yield alerts (LEFT/RIGHT) when EV within 25m.
 - User Portal (/user-portal): Choose your role. EV & Signal roles need admin approval first.
 - Observer (/admin-preview): Read-only live view of all nodes.
 - 404 (/404): Error page, auto-redirects to login in 10s.
