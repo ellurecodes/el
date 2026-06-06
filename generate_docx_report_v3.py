@@ -16,7 +16,7 @@ def set_cell_background(cell, fill_hex):
     shd.set(qn('w:fill'), fill_hex)
     tcPr.append(shd)
 
-def parse_inline(paragraph, text, font_name="Times New Roman", font_size_pt=10, italic_all=False):
+def parse_inline(paragraph, text, font_name="Times New Roman", font_size_pt=12, italic_all=False):
     """Parse inline markdown: bold (**text**), italic (*text*), math ($math$), links ([text](url)), code (`code`)"""
     pattern = re.compile(r'(\*\*.*?\*\*|\*[^*]+?\*|\$[^$]+?\$|\[.*?\]\(.*?\)|`[^`]+?`)')
     parts = pattern.split(text)
@@ -94,8 +94,8 @@ def parse_inline(paragraph, text, font_name="Times New Roman", font_size_pt=10, 
 def main():
     workspace_dir = r"c:\Users\AYUSH K BHAT\OneDrive\Desktop\v2v-v2i-project-phase2"
     
-    md_path = os.path.join(workspace_dir, "syntrix_v2x_ieee_paper_v2.md")
-    output_path = os.path.join(workspace_dir, "syntrix_v2x_ieee_paper_v2.docx")
+    md_path = os.path.join(workspace_dir, "v2x_project_report.md")
+    output_path = os.path.join(workspace_dir, "v2x_project_report_final.docx")
 
     if not os.path.exists(md_path):
         print(f"Error: {md_path} does not exist.")
@@ -104,7 +104,33 @@ def main():
     with open(md_path, 'r', encoding='utf-8') as f:
         md_content = f.read()
 
-    doc = docx.Document()
+    doc = docx.Document(os.path.join(workspace_dir, 'sem2el.docx'))
+
+    # Clear all placeholder paragraphs from sem2el.docx
+    for p in list(doc.paragraphs):
+        p._element.getparent().remove(p._element)
+
+    # Insert Title
+    p_title = doc.add_paragraph()
+    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_title.paragraph_format.space_before = Pt(12)
+    p_title.paragraph_format.space_after = Pt(12)
+    run_title = p_title.add_run('V2X  Real-Time Vehicle-to-Everything Emergency Clearance System')
+    run_title.font.name = 'Times New Roman'
+    run_title.font.size = Pt(20)
+    run_title.bold = True
+    
+    # Insert Names
+    p_names = doc.add_paragraph()
+    p_names.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_names.paragraph_format.space_after = Pt(24)
+    run_names = p_names.add_run('Abhishek Banapur, Ayush K Bhat, G Y Sagar, Harsha Patel T, Vishal')
+    run_names.font.name = 'Times New Roman'
+    run_names.font.size = Pt(12)
+    run_names.bold = True
+
+    # REMOVE IEEE Page Setup which deletes the margins of the template!
+
 
     # ── IEEE Page Setup ──
     section = doc.sections[0]
@@ -165,107 +191,17 @@ def main():
 
     # ── Build Document ──
 
-    # Title
-    p_title = doc.add_paragraph()
-    p_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_title.paragraph_format.space_before = Pt(12)
-    p_title.paragraph_format.space_after = Pt(6)
-    run_title = p_title.add_run(title_raw)
-    run_title.font.name = 'Times New Roman'
-    run_title.font.size = Pt(24)
-    run_title.bold = True
-    run_title.font.color.rgb = RGBColor(0, 0, 0)
-
-    # Authors
-    for author_line in authors_raw.split('\n'):
-        author_line = author_line.strip()
-        if not author_line:
-            continue
-        p_auth = doc.add_paragraph()
-        p_auth.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_auth.paragraph_format.space_after = Pt(2)
-        
-        is_italic = author_line.startswith('*') and author_line.endswith('*')
-        clean_text = author_line.strip('*')
-        
-        parts = re.split(r'(\^\{.*?\})', clean_text)
-        for part in parts:
-            if not part:
-                continue
-            if part.startswith('^{') and part.endswith('}'):
-                sup_text = part[2:-1]
-                run = p_auth.add_run(sup_text)
-                run.font.superscript = True
-            else:
-                run = p_auth.add_run(part)
-            
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(10)
-            run.font.color.rgb = RGBColor(0, 0, 0)
-            if is_italic:
-                run.font.italic = True
-    
-    # Spacer after authors
-    p_spacer = doc.add_paragraph()
-    p_spacer.paragraph_format.space_after = Pt(8)
-
-    # Abstract
-    p_abs = doc.add_paragraph()
-    p_abs.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    p_abs.paragraph_format.left_indent = Inches(0.25)
-    p_abs.paragraph_format.right_indent = Inches(0.25)
-    p_abs.paragraph_format.space_after = Pt(6)
-    
-    run_abs_tag = p_abs.add_run("Abstract\u2014")
-    run_abs_tag.bold = True
-    run_abs_tag.font.italic = True
-    run_abs_tag.font.name = 'Times New Roman'
-    run_abs_tag.font.size = Pt(9)
-    
-    parse_inline(p_abs, abstract_raw.strip(), font_name="Times New Roman", font_size_pt=9, italic_all=True)
-
-    # Keywords
-    if keywords_raw:
-        p_key = doc.add_paragraph()
-        p_key.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        p_key.paragraph_format.left_indent = Inches(0.25)
-        p_key.paragraph_format.right_indent = Inches(0.25)
-        p_key.paragraph_format.space_after = Pt(18)
-        
-        run_key_tag = p_key.add_run("Keywords\u2014")
-        run_key_tag.bold = True
-        run_key_tag.font.italic = True
-        run_key_tag.font.name = 'Times New Roman'
-        run_key_tag.font.size = Pt(9)
-        
-        run_key_val = p_key.add_run(keywords_raw)
-        run_key_val.font.name = 'Times New Roman'
-        run_key_val.font.size = Pt(9)
-
-    # ── Continuous Section Break → 2 Columns ──
-    body_section = doc.add_section(WD_SECTION.CONTINUOUS)
-    body_section.top_margin = Inches(0.75)
-    body_section.bottom_margin = Inches(0.75)
-    body_section.left_margin = Inches(0.75)
-    body_section.right_margin = Inches(0.75)
-    
-    sectPr = body_section._sectPr
-    cols = OxmlElement('w:cols')
-    cols.set(qn('w:num'), '2')
-    cols.set(qn('w:space'), '360')
-    sectPr.append(cols)
-
-    # ── Process Body Lines ──
-    i = 0
-    in_code_block = False
-    code_text = ""
-    table_lines = []
     
     # Skip metadata sections we already processed
     skip_sections = {'Abstract', 'Authors'}
     current_skip = None
     
+    in_code_block = False
+    code_text = ""
+    table_lines = []
+    i = 0
     while i < len(lines):
+
         line = lines[i].strip()
         raw_line = lines[i]
         
@@ -313,10 +249,10 @@ def main():
                 p.paragraph_format.left_indent = Inches(0.1)
                 p.paragraph_format.space_after = Pt(4)
                 p.paragraph_format.space_before = Pt(4)
-                p.paragraph_format.line_spacing = 1.0
+                p.paragraph_format.line_spacing = 1.5
                 run = p.add_run(code_text.strip())
                 run.font.name = 'Consolas'
-                run.font.size = Pt(7.5)
+                run.font.size = Pt(10)
                 in_code_block = False
                 code_text = ""
             else:
@@ -366,16 +302,16 @@ def main():
                             cell = table.cell(r_idx, c_idx)
                             p = cell.paragraphs[0]
                             p.paragraph_format.space_after = Pt(2)
-                            p.paragraph_format.line_spacing = 1.0
+                            p.paragraph_format.line_spacing = 1.5
                             
                             if r_idx == 0:
                                 run = p.add_run(val.replace('**', ''))
                                 run.bold = True
                                 run.font.name = 'Times New Roman'
-                                run.font.size = Pt(8)
+                                run.font.size = Pt(12)
                                 set_cell_background(cell, "F2F2F2")
                             else:
-                                parse_inline(p, val, font_size_pt=8)
+                                parse_inline(p, val, font_size_pt=12)
                     doc.add_paragraph().paragraph_format.space_after = Pt(4)
                 table_lines = []
             continue
@@ -399,11 +335,11 @@ def main():
             # Add caption
             p_cap = doc.add_paragraph()
             p_cap.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            p_cap.paragraph_format.space_after = Pt(8)
+            p_cap.paragraph_format.space_after = Pt(12)
             run_cap = p_cap.add_run(caption)
             run_cap.font.italic = True
             run_cap.font.name = 'Times New Roman'
-            run_cap.font.size = Pt(8)
+            run_cap.font.size = Pt(12)
             i += 1
             continue
 
@@ -421,16 +357,16 @@ def main():
                 run = p.add_run(heading_text.upper())
                 run.bold = True
                 run.font.name = 'Times New Roman'
-                run.font.size = Pt(10)
+                run.font.size = Pt(12)
                 run.font.color.rgb = RGBColor(0, 0, 0)
             else:
                 p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-                p.paragraph_format.space_before = Pt(8)
+                p.paragraph_format.space_before = Pt(12)
                 p.paragraph_format.space_after = Pt(3)
                 run = p.add_run(heading_text)
                 run.font.italic = True
                 run.font.name = 'Times New Roman'
-                run.font.size = Pt(10)
+                run.font.size = Pt(12)
                 run.font.color.rgb = RGBColor(0, 0, 0)
             i += 1
             continue
@@ -440,13 +376,13 @@ def main():
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.LEFT
             p.paragraph_format.keep_with_next = True
-            p.paragraph_format.space_before = Pt(8)
+            p.paragraph_format.space_before = Pt(12)
             p.paragraph_format.space_after = Pt(3)
             
             run = p.add_run(heading_text)
             run.font.italic = True
             run.font.name = 'Times New Roman'
-            run.font.size = Pt(10)
+            run.font.size = Pt(12)
             run.font.color.rgb = RGBColor(0, 0, 0)
             i += 1
             continue
@@ -461,7 +397,7 @@ def main():
             p.paragraph_format.left_indent = Inches(0.2)
             p.paragraph_format.space_after = Pt(4)
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            parse_inline(p, quote_text, font_size_pt=9)
+            parse_inline(p, quote_text, font_size_pt=12)
             for run in p.runs:
                 run.font.italic = True
             i += 1
@@ -479,9 +415,9 @@ def main():
             p.paragraph_format.left_indent = Inches(0.2)
             p.paragraph_format.first_line_indent = Inches(-0.2)
             p.paragraph_format.space_after = Pt(2)
-            p.paragraph_format.line_spacing = 1.0
+            p.paragraph_format.line_spacing = 1.5
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            parse_inline(p, f"{num}. {list_text}", font_size_pt=10)
+            parse_inline(p, f"{num}. {list_text}", font_size_pt=12)
             i += 1
             continue
 
@@ -493,9 +429,9 @@ def main():
             p.paragraph_format.left_indent = Inches(0.2)
             p.paragraph_format.first_line_indent = Inches(-0.2)
             p.paragraph_format.space_after = Pt(2)
-            p.paragraph_format.line_spacing = 1.0
+            p.paragraph_format.line_spacing = 1.5
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-            parse_inline(p, ref_text, font_size_pt=8)
+            parse_inline(p, ref_text, font_size_pt=12)
             i += 1
             continue
 
@@ -505,11 +441,11 @@ def main():
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Inches(0.15)
             p.paragraph_format.space_after = Pt(2)
-            p.paragraph_format.line_spacing = 1.0
+            p.paragraph_format.line_spacing = 1.5
             run = p.add_run("\u2022  ")
             run.font.name = 'Times New Roman'
-            run.font.size = Pt(10)
-            parse_inline(p, list_text, font_size_pt=10)
+            run.font.size = Pt(12)
+            parse_inline(p, list_text, font_size_pt=12)
             i += 1
             continue
         
@@ -519,11 +455,11 @@ def main():
             p = doc.add_paragraph()
             p.paragraph_format.left_indent = Inches(0.35)
             p.paragraph_format.space_after = Pt(2)
-            p.paragraph_format.line_spacing = 1.0
+            p.paragraph_format.line_spacing = 1.5
             run = p.add_run("\u2013  ")
             run.font.name = 'Times New Roman'
-            run.font.size = Pt(9)
-            parse_inline(p, list_text, font_size_pt=9)
+            run.font.size = Pt(12)
+            parse_inline(p, list_text, font_size_pt=12)
             i += 1
             continue
 
@@ -560,7 +496,7 @@ def main():
                         run = p.add_run(content)
                         run.font.name = 'Cambria Math'
                         run.font.italic = True
-                        run.font.size = Pt(10)
+                        run.font.size = Pt(12)
                         if is_sub:
                             run.font.subscript = True
                         else:
@@ -572,7 +508,7 @@ def main():
                     run = p.add_run(eq_text[start:idx])
                     run.font.name = 'Cambria Math'
                     run.font.italic = True
-                    run.font.size = Pt(10)
+                    run.font.size = Pt(12)
             i += 1
             continue
 
@@ -587,7 +523,7 @@ def main():
             run = p.add_run(eq_text)
             run.font.name = 'Cambria Math'
             run.font.italic = True
-            run.font.size = Pt(10)
+            run.font.size = Pt(12)
             i += 1
             continue
 
@@ -597,8 +533,8 @@ def main():
             p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
             p.paragraph_format.first_line_indent = Inches(0.15)
             p.paragraph_format.space_after = Pt(4)
-            p.paragraph_format.line_spacing = 1.0
-            parse_inline(p, line, font_size_pt=10.0)
+            p.paragraph_format.line_spacing = 1.5
+            parse_inline(p, line, font_size_pt=12.0)
             
         i += 1
 
@@ -607,14 +543,14 @@ def main():
         doc.save(output_path)
         print(f"✅ Successfully generated IEEE paper DOCX at: {output_path}")
     except PermissionError:
-        alternative_path = os.path.join(workspace_dir, "syntrix_v2x_ieee_paper_v2_final.docx")
+        alternative_path = os.path.join(workspace_dir, "v2x_project_report_final_v2.docx")
         doc.save(alternative_path)
         print(f"✅ Generated alternative: {alternative_path}")
 
     print(f"\n📊 Paper Statistics:")
     word_count = len(md_content.split())
     print(f"   Words: ~{word_count}")
-    print(f"   Pages: ~{word_count // 700} (estimated for 2-column IEEE)")
+    print(f"   Pages: ~{word_count // 400} (estimated for 1-column Report)")
 
 if __name__ == "__main__":
     main()

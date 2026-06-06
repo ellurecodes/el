@@ -1,14 +1,12 @@
-# Syntrix V2X — Real-Time Vehicle-to-Everything Emergency Clearance System
-
 ## 1. Introduction
 
-Urban traffic congestion and the associated delays to emergency response vehicles constitute a critical public safety concern in rapidly growing Indian cities. According to the National Crime Records Bureau (NCRB), India records over 1.5 lakh road accident fatalities annually, with a significant proportion attributed to delayed emergency response caused by traffic congestion and a lack of coordinated traffic management systems. When an ambulance, fire truck, or police vehicle is trapped in a gridlock, every second of delay directly translates to increased mortality risks or escalating property damage. 
+Urban traffic congestion and the associated delays to emergency response vehicles are a huge public safety issue in rapidly growing Indian cities. According to the National Crime Records Bureau (NCRB), India records over 1.5 lakh road accident fatalities annually, with and a big part of this happens because of delayed emergency response caused by traffic congestion and a lack of coordinated traffic management systems. When an ambulance, fire truck, or police vehicle is trapped in a gridlock, every second of delay directly translates to increased mortality risks or escalating property damage. 
 
-The concept of Vehicle-to-Everything (V2X) communication has emerged as a transformative paradigm in Intelligent Transportation Systems (ITS). V2X enables real-time, low-latency data exchange between vehicles (Vehicle-to-Vehicle, V2V), vehicles and roadside infrastructure (Vehicle-to-Infrastructure, V2I), and vehicles and cellular networks (Vehicle-to-Network, V2N). Traditionally, V2X implementations have relied on Dedicated Short-Range Communications (DSRC) operating in the 5.9 GHz band (IEEE 802.11p) or the more recent Cellular V2X (C-V2X) protocols under LTE and 5G NR standards. While these technologies offer ultra-low latencies, their adoption is heavily bottlenecked by the high cost of dedicated hardware, such as On-Board Units (OBUs) in vehicles and Roadside Units (RSUs) on traffic signals.
+The concept of Vehicle-to-Everything (V2X) communication has is becoming a big step forward in Intelligent Transportation Systems (ITS). V2X enables real-time, low-latency data exchange between vehicles (Vehicle-to-Vehicle, V2V), vehicles and roadside infrastructure (Vehicle-to-Infrastructure, V2I), and vehicles and cellular networks (Vehicle-to-Network, V2N). Traditionally, V2X implementations have relied on Dedicated Short-Range Communications (DSRC) operating in the 5.9 GHz band (IEEE 802.11p) or the more recent Cellular V2X (C-V2X) protocols under LTE and 5G NR standards. While these technologies offer ultra-low latencies, their adoption is held back by the high cost of dedicated hardware, such as On-Board Units (OBUs) in vehicles and Roadside Units (RSUs) on traffic signals.
 
-This project, titled **Syntrix V2X**, presents a fully functional, cloud-synchronized, web-based V2X Emergency Clearance System that bypasses expensive hardware requirements by utilizing consumer-grade smartphones, browser-based Geolocation APIs, and Firebase Realtime Database. The system implements a complete V2V and V2I communication pipeline. When an emergency vehicle (EV) activates its emergency mode, its live location, speed, and heading are continuously streamed to the cloud. Nearby civilian vehicles receive real-time, bearing-aware yield instructions (such as "MOVE LEFT" or "MOVE RIGHT") to clear the lane before the emergency vehicle arrives. Simultaneously, approaching traffic signals automatically preempt their cycles, turning green in the EV's direction and red in conflicting directions to secure a smooth emergency corridor.
+This project, titled **V2X**, presents a fully functional, cloud-synchronized, web-based V2X Emergency Clearance System that avoids the need for costly hardware by using consumer-grade smartphones, browser-based Geolocation APIs, and Firebase Realtime Database. The system implements a complete V2V and V2I communication pipeline. When an emergency vehicle (EV) activates its emergency mode, its live location, speed, and heading are continuously streamed to the cloud. Nearby civilian vehicles receive real-time, bearing-aware yield instructions (such as "MOVE LEFT" or "MOVE RIGHT") to clear the lane before the emergency vehicle arrives. At the same time, approaching traffic signals automatically preempt their cycles, turning green in the EV's direction and red in conflicting directions to secure a smooth emergency corridor.
 
-The application is built using standard client-side web technologies — HTML5, CSS3, and Vanilla JavaScript (ES6+) — with Leaflet.js for interactive mapping and Open Source Routing Machine (OSRM) for dynamic routing. This architecture makes it lightweight, highly portable, and immediately deployable on any modern smartphone browser. The system has been successfully deployed live on Firebase Hosting (https://v2v-v2i-project.web.app), proving that software-defined V2X systems can offer a cost-effective, scalable, and immediately viable solution for municipal emergency traffic management.
+The application is built using standard client-side web technologies — HTML5, CSS3, and Vanilla JavaScript (ES6+) — with Leaflet.js for interactive mapping and Open Source Routing Machine (OSRM) for dynamic routing. This architecture makes it lightweight, easy to run anywhere, and ready to use right away on any modern smartphone browser. The system has been successfully deployed live on Firebase Hosting (https://v2v-v2i-project.web.app), proving that software-defined V2X systems can offer a cost-effective, scalable, and immediately viable solution for municipal emergency traffic management.
 
 ---
 
@@ -16,19 +14,19 @@ The application is built using standard client-side web technologies — HTML5, 
 
 ### 2.1 Problem Statement
 
-Emergency vehicles navigating congested urban corridors in metropolitan areas like Bengaluru face unpredictable delays at signalized intersections. Under standard traffic conditions, emergency drivers rely on sirens and emergency lights to negotiate passage through gridlocked lanes. However, this approach is passive, relies entirely on the immediate visual and auditory reaction of civilian drivers, and often fails when traffic density reaches saturation points where civilian cars have no physical space to maneuver.
+Emergency vehicles navigating congested urban corridors in big cities like Bengaluru face random delays at signalized intersections. Under standard traffic conditions, emergency drivers rely on sirens and emergency lights to push through heavy traffic. However, this approach is passive, relies entirely on the immediate visual and auditory reaction of civilian drivers, and often fails when traffic density reaches saturation points where civilian cars have no physical space to maneuver.
 
 The core problem is the **absence of an active, cooperative, and real-time communication loop between emergency vehicles, traffic signal controllers, and surrounding civilian drivers**. Specifically:
 1. **Lack of Signal Preemption:** Traffic signals operate on fixed-time cycles or localized loop-detectors that cannot distinguish between emergency vehicles and standard traffic, resulting in emergency vehicles being forced to wait at red lights.
 2. **Delayed Civilian Awareness:** Civilian drivers only become aware of an approaching emergency vehicle when they hear a siren in close proximity. This late detection leads to chaotic, uncoordinated yielding maneuvers, often blocking the emergency vehicle further.
 3. **No Direct Yield Instructions:** Civilian drivers lack spatial orientation guidance (e.g., whether to yield left or right) relative to the approaching emergency vehicle's path.
-4. **Hardware Cost Barrier:** Implementing traditional hardware-based DSRC or C-V2X solutions requires massive municipal capital expenditure, rendering it impractical for rapid, large-scale deployment in developing nations.
+4. **Hardware Cost Barrier:** Implementing traditional hardware-based DSRC or C-V2X solutions requires massive municipal upfront cost, making it too expensive for rapid, large-scale deployment in developing nations.
 
 ### 2.2 Background Information (Literature Review)
 
-Intelligent Transportation Systems (ITS) have long investigated Emergency Vehicle Preemption (EVP) as a method to reduce response times. Early EVP systems utilized optical sensors (strobe light detection), acoustic detectors (siren frequency analysis), or localized infrared transmitters. While functional, these systems are highly susceptible to weather conditions, line-of-sight blockages, and high false-positive rates due to ambient urban noise.
+Intelligent Transportation Systems (ITS) have long investigated Emergency Vehicle Preemption (EVP) as a method to reduce response times. Early EVP systems used optical sensors (strobe light detection), acoustic detectors (siren frequency analysis), or localized infrared transmitters. While functional, these systems are highly affected by bad weather, buildings blocking the signal, and high false-positive rates due to ambient urban noise.
 
-With the advent of global satellite navigation, GPS-based preemption systems emerged. Qin and Khan (2012) demonstrated that GPS-based signal preemption reduces emergency vehicle travel times by 15–25% and reduces intersection accidents involving emergency vehicles. However, standard GPS signals in dense urban environments suffer from severe multipath reflections (where signals bounce off buildings), leading to positional errors of up to 35 meters. This noise makes raw GPS coordinates unreliable for critical safety decisions, such as determining which specific lane or approach corridor a vehicle is occupying.
+With the rise of global satellite navigation, GPS-based preemption systems emerged. Qin and Khan (2012) demonstrated that GPS-based signal preemption reduces emergency vehicle travel times by 15–25% and reduces intersection accidents involving emergency vehicles. However, standard GPS signals in dense urban environments suffer from severe multipath reflections (where signals bounce off buildings), leading to positional errors of up to 35 meters. This noise makes raw GPS coordinates unreliable for critical safety decisions, such as determining which specific lane or approach corridor a vehicle is occupying.
 
 To solve this, state estimation algorithms are applied. The Kalman Filter, developed by Rudolf E. Kálmán in 1960, uses a series of measurements observed over time (containing statistical noise) and estimates the joint probability distribution of the variables. In vehicle tracking, a Kalman filter successfully smooths noisy GPS inputs by combining a physical motion model (predicting position based on velocity and heading) with actual GPS measurements. 
 
@@ -60,7 +58,7 @@ Firebase Realtime Database, a NoSQL cloud database, synchronizes data across all
 
 ### 4.1 Approach
 
-The Syntrix V2X system utilizes a decentralized client-server architecture communicating through a centralized Firebase Realtime Database. The system operates on a Publish-Subscribe (Pub-Sub) model. The emergency vehicle acts as a publisher, broadcasting its state variables to specific database paths. The civilian vehicles and traffic signal controllers act as subscribers, listening for real-time changes on those paths and executing localized computations to determine alerts and preemption triggers.
+The V2X system uses a decentralized client-server architecture communicating through a centralized Firebase Realtime Database. The system operates on a Publish-Subscribe (Pub-Sub) model. The emergency vehicle acts as a publisher, broadcasting its state variables to specific database paths. The civilian vehicles and traffic signal controllers act as subscribers, listening for real-time changes on those paths and executing localized computations to determine alerts and preemption triggers.
 
 **V2X Communication and Preemption Logic Flowchart:**
 
@@ -104,22 +102,22 @@ The Syntrix V2X system utilizes a decentralized client-server architecture commu
 **Detailed Mathematical Modeling:**
 
 1. **Haversine Distance Formulation:**
-   To calculate the distance $d$ between two coordinates $(lat_1, lon_1)$ and $(lat_2, lon_2)$ on a spherical Earth of radius $R \approx 6371$ km:
-   $$\Delta lat = lat_2 - lat_1$$
-   $$\Delta lon = lon_2 - lon_1$$
-   $$a = \sin^2\left(\frac{\Delta lat}{2}\right) + \cos(lat_1) \cdot \cos(lat_2) \cdot \sin^2\left(\frac{\Delta lon}{2}\right)$$
-   $$c = 2 \cdot \operatorname{atan2}\left(\sqrt{a}, \sqrt{1-a}\right)$$
-   $$d = R \cdot c$$
+   To calculate the distance $d$ between two coordinates $(lat_1, lon_1)$ and $(lat_2, lon_2)$ on a spherical Earth of radius $R ≈ 6371$ km:
+   $$Δlat = lat_2 - lat_1$$
+   $$Δlon = lon_2 - lon_1$$
+   $$a = sin^2(Δlat / 2) + cos(lat_1) * cos(lat_2) * sin^2(Δlon / 2)$$
+   $$c = 2 * atan2(√a, √(1-a))$$
+   $$d = R * c$$
 
 2. **Bearing Calculation:**
-   The initial bearing $\theta$ (in radians) from the emergency vehicle to a civilian vehicle is computed as:
-   $$\theta = \operatorname{atan2}\left(\sin(\Delta lon)\cdot\cos(lat_2), \cos(lat_1)\cdot\sin(lat_2) - \sin(lat_1)\cdot\cos(lat_2)\cdot\cos(\Delta lon)\right)$$
+   The initial bearing $θ$ (in radians) from the emergency vehicle to a civilian vehicle is computed as:
+   $$θ = atan2(sin(Δlon) * cos(lat_2), cos(lat_1) * sin(lat_2) - sin(lat_1) * cos(lat_2) * cos(Δlon))$$
 
 3. **Relative Bearing for Yield Advisories:**
-   Let $\psi$ be the current heading angle of the emergency vehicle (obtained from GPS or consecutive position vectors, where North is 0°). The relative bearing $\theta_{rel}$ of the civilian vehicle with respect to the EV's trajectory is:
-   $$\theta_{rel} = (\theta - \psi + 360^\circ) \pmod{360^\circ}$$
-   * If $\theta_{rel} \in [0^\circ, 180^\circ]$, the civilian vehicle is to the right of the EV's forward path, indicating they should **"MOVE RIGHT"** to clear the central lane.
-   * If $\theta_{rel} \in (180^\circ, 360^\circ)$, the civilian vehicle is to the left of the EV's path, indicating they should **"MOVE LEFT"**.
+   Let $ψ$ be the current heading angle of the emergency vehicle (obtained from GPS or consecutive position vectors, where North is 0°). The relative bearing $θ_{rel}$ of the civilian vehicle with respect to the EV's trajectory is:
+   $$θ_{rel} = (θ - ψ + 360°) mod 360°$$
+   * If $θ_{rel}$ is between 0° and 180°, the civilian vehicle is to the right of the EV's forward path, indicating they should **"MOVE RIGHT"** to clear the central lane.
+   * If $θ_{rel}$ is between 180° and 360°, the civilian vehicle is to the left of the EV's path, indicating they should **"MOVE LEFT"**.
 
 ### 4.2 Procedures
 
@@ -185,8 +183,39 @@ The UI design focuses on a high-contrast dark mode to reduce eye strain for oper
 ### 5.2 Implementation
 
 1. **Dual-Stage GPS Filtering Implementation:**
-   * **Stage 1 (Kalman Filter):** A linear Kalman Filter is applied to smooth coordinates. The state vector is represented as $x_t = [pos_t, vel_t]^T$. The prediction step models linear movement, while the correction step matches coordinates against GPS inputs. This stage reduces jitter from building reflections.
-   * **Stage 2 (Particle Filter):** To manage sudden coordinate spikes (e.g., GPS jumping 50 meters due to loss of line-of-sight), we pass the Kalman output into a Particle Filter with 100 particles. The particles are resampled using a Gaussian probability density function centered on the last known velocity vector. This dual-stage design smooths the EV's trajectory and stabilizes the distance calculations.
+   * **Stage 1 (1D Kalman Filter):** A linear Kalman Filter is applied to smooth coordinates independently. Let $z_t$ be the raw coordinate at time $t$:
+     **Predict Phase:**
+     $$p_{t|t-1} = p_{t-1|t-1} + q \ \ \ (1)$$
+     **Update Phase:**
+     $$k_t = p_{t|t-1} / (p_{t|t-1} + r) \ \ \ (2)$$
+     $$x̂_{t|t} = x̂_{t|t-1} + k_t * (z_t - x̂_{t|t-1}) \ \ \ (3)$$
+     $$p_{t|t} = (1 - k_t) * p_{t|t-1} \ \ \ (4)$$
+     where $q = 0.01$ is the process noise and $r = 1.0$ is the measurement noise.
+
+     **Code Implementation:**
+     ```javascript
+     class KalmanFilter1D {
+       constructor(processNoise = 0.01, measurementNoise = 1.0) {
+         this.q = processNoise;
+         this.r = measurementNoise;
+         this.p = 1;      // Estimation error covariance
+         this.x = null;   // State estimate
+         this.k = 0;      // Kalman gain
+       }
+       filter(measurement) {
+         if (this.x === null) { this.x = measurement; return measurement; }
+         this.p = this.p + this.q;                     // Predict
+         this.k = this.p / (this.p + this.r);          // Gain
+         this.x = this.x + this.k * (measurement - this.x); // Update
+         this.p = (1 - this.k) * this.p;               // Covariance
+         return this.x;
+       }
+     }
+     ```
+
+   * **Stage 2 (Particle Filter):** To manage sudden coordinate spikes, we pass the Kalman output into a Particle Filter with $N = 25$ particles ${x_t^{(i)}}_{i=1}^N$. The particles propagate based on estimated velocity with Gaussian process noise, and weights are updated using a Gaussian likelihood relative to the measurement:
+     $$w_t^{(i)} = exp(-0.5 * (||x_t^{(i)} - z_t|| / σ)^2)$$
+     where $σ = accuracy / 111320$ converts the GPS accuracy (meters) to degrees. This dual-stage design smooths the EV's trajectory and stabilizes the distance calculations.
 
 2. **OSRM Route Integration and Geometry Reduction:**
    When an EV driver sets a destination, the dashboard calls the OSRM backend to fetch the route coordinates. Storing thousands of coordinate pairs in Firebase would increase database read/write costs. To optimize this, we implemented the Douglas-Peucker polyline simplification algorithm, reducing the coordinate count by up to 80% while retaining the route shape. The simplified route geometry is saved to `/v4/activeRoute` and displayed as an animated route corridor across all dashboards.
@@ -219,6 +248,28 @@ The UI design focuses on a high-contrast dark mode to reduce eye strain for oper
 | **Relative Azimuth Math** | Computes relative angles between vehicle headings and civilian vectors to determine yield instructions. |
 | **Service Worker Caching** | Intercepts network requests to cache static assets, accelerating repeat visits and enabling offline support. |
 | **Atomic Multi-Path Updates** | Uses Firebase `update()` to modify multiple database paths in a single write operation, preventing race conditions. |
+
+### 6.3 Yield Calculation Implementation
+
+The core logic determining the yield instruction is implemented in JavaScript to run locally in the browser with <1 ms latency:
+
+```javascript
+function getYieldSide(evLat, evLng, evHeading, vehicleLat, vehicleLng) {
+  const bearing = getBearing(evLat, evLng, vehicleLat, vehicleLng);
+  const relativeBearing = ((bearing - evHeading + 360) % 360);
+  return relativeBearing < 180 ? 'RIGHT' : 'LEFT';
+}
+
+function getBearing(lat1, lng1, lat2, lng2) {
+  const p1 = lat1 * Math.PI / 180;
+  const p2 = lat2 * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const y = Math.sin(dLng) * Math.cos(p2);
+  const x = Math.cos(p1) * Math.sin(p2) -
+            Math.sin(p1) * Math.cos(p2) * Math.cos(dLng);
+  return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+}
+```
 
 ---
 
@@ -265,7 +316,7 @@ The preemption and warning modules worked as expected during tests. When the EV 
 +-------------------------------------------------------------+
 ```
 
-Simultaneously, the traffic signal preemption successfully overridden normal cycles within 1.5 seconds, establishing green corridors for the simulated emergency paths.
+At the same time, the traffic signal preemption successfully overridden normal cycles within 1.5 seconds, establishing green corridors for the simulated emergency paths.
 
 ### 8.2 Discussion
 
@@ -273,7 +324,7 @@ The results show that a cloud-synchronized, web-based architecture can achieve l
 
 Using web browsers introduces limitations due to varying browser security policies regarding background location tracking. On iOS and Android devices, browsers must remain active to update coordinates. For a production deployment, this system would be wrapped in a native container (such as Cordova or Capacitor) to allow background location updates.
 
-The database-driven communication model relies on active internet access. In scenarios with total cellular coverage loss, the system would fail back to standard driver visibility and sirens. However, given the high density of 4G and 5G networks in urban corridors, this hybrid cloud system provides a low-cost, immediately deployable alternative to traditional DSRC systems.
+The database-driven communication model relies on active internet access. If the cell network completely drops, the system would rely on normal sirens and flashing lights again and sirens. However, given the high density of 4G and 5G networks in urban corridors, this hybrid cloud system provides a low-cost, ready to use right away alternative to traditional DSRC systems.
 
 ---
 
@@ -281,7 +332,7 @@ The database-driven communication model relies on active internet access. In sce
 
 ### 9.1 Prototype Description
 
-The Syntrix V2X prototype is structured as five web pages:
+The V2X prototype is structured as five web pages:
 
 1. **Emergency Vehicle Dashboard (`emergency.html`):** Used by the EV driver. It displays GPS status, allows activating the emergency broadcast, and includes an OSRM route planner to show the planned path.
 2. **Traffic Signal Dashboard (`signal.html`):** Simulates an intersection controller, displaying current light status (Red, Yellow, Green) and showing transition alerts during preemption.
@@ -303,24 +354,24 @@ Testing was conducted using mobile devices in outdoor test sites. One device act
 
 ### 10.1 Summary
 
-The Syntrix V2X project demonstrates a web-based, hardware-free Vehicle-to-Everything system for emergency vehicle clearance. By utilizing standard web APIs and Firebase, the system provides real-time vehicle tracking, traffic signal preemption, and directional yield alerts with low communication latency. This software-defined approach lowers the cost barrier for smart city transportation solutions, making it suitable for rapid deployment in resource-constrained urban environments.
+The V2X project demonstrates a web-based, hardware-free Vehicle-to-Everything system for emergency vehicle clearance. By using standard web APIs and Firebase, the system provides real-time vehicle tracking, traffic signal preemption, and directional yield alerts with low communication latency. This software-defined approach lowers the cost barrier for smart city transportation solutions, making it suitable for rapid deployment in resource-constrained urban environments.
 
 ### 10.2 Personal Reflection
 
 **Student 1 — Vishal (1RV25CS205) (CSE):**
-Working on the Syntrix V2X project has been a transformative learning experience that deepened my understanding of real-time systems, GPS signal processing, and cloud-based communication architectures. The challenge of implementing Kalman and Particle filters for GPS accuracy improvement taught me the practical application of state estimation theory that we study in mathematics courses. Debugging the route disappearance issue taught me the importance of understanding the semantics of database operations — the subtle difference between `set()` and `update()` in Firebase had cascading effects across the entire system. This project has reinforced my interest in Intelligent Transportation Systems and the potential of software-defined solutions to address critical public safety challenges.
+Working on the V2X project has been a major learning experience that deepened my understanding of real-time systems, GPS signal processing, and cloud-based communication architectures. The challenge of implementing Kalman and Particle filters for GPS accuracy improvement taught me the practical application of state estimation theory that we study in mathematics courses. Debugging the route disappearance issue taught me the importance of understanding the semantics of database operations — the subtle difference between `set()` and `update()` in Firebase had cascading effects across the entire system. This project has reinforced my interest in Intelligent Transportation Systems and the potential of software-defined solutions to address critical public safety challenges.
 
-**Student 2 — [Name] ([USN]) (CSE):**
-Working on the Emergency Vehicle Dashboard and route planning components of Syntrix V2X has significantly enhanced my software engineering and algorithmic skills. Integrating the Open Source Routing Machine (OSRM) API for generating and rendering paths in real-time was a rewarding challenge, particularly when implementing the Douglas-Peucker algorithm to reduce coordinate density and optimize database payloads. I also gained experience designing clean, responsive user interfaces with glassmorphic elements to ensure vehicle drivers can safely operate the interface. Collaborating with the team on database synchronization and handling edge cases, like persistent route visualization during live GPS updates, taught me valuable lessons about building robust distributed client-side applications.
+**Student 2 — Ayush K Bhat (CSE):**
+Working on the Emergency Vehicle Dashboard and route planning components of V2X has significantly enhanced my software engineering and algorithmic skills. Integrating the Open Source Routing Machine (OSRM) API for generating and rendering paths in real-time was a rewarding challenge, particularly when implementing the Douglas-Peucker algorithm to reduce coordinate density and optimize database payloads. I also gained experience designing clean, responsive user interfaces with glassmorphic elements to ensure vehicle drivers can safely operate the interface. Collaborating with the team on database synchronization and handling edge cases, like persistent route visualization during live GPS updates, taught me valuable lessons about building strong distributed client-side applications.
 
-**Student 3 — [Name] ([USN]) (ECE):**
+**Student 3 — G Y Sagar (ECE):**
 As an Electronics and Communication Engineering (ECE) student, my contributions focused on the communication modeling, sensor interfacing, and timing protocols of the V2I (Vehicle-to-Infrastructure) and V2V (Vehicle-to-Vehicle) modules. I analyzed WebSocket network latencies in Firebase to ensure that emergency clearance signals propagate in under 500 milliseconds. I worked on simulating the roadside unit (RSU) and on-board unit (OBU) interactions, and modeled the interface between physical traffic controller circuitry and the software preemption logic to guarantee safe junction transition states (green-yellow-red timings). This work taught me the practical complexities of designing low-latency communication networks for safety-critical applications.
 
-**Student 4 — [Name] ([USN]) (Chemical):**
-As a Chemical Engineering student, my contributions focused on the environmental impact assessment, process optimization, and system dynamics of emergency clearance. I developed mathematical models to evaluate how the V2X preemption system reduces emergency vehicle fuel consumption and idle emissions (such as CO2, NOx, and volatile organic compounds) in transit corridors. Applying process control theory, I modeled urban traffic flow as a fluid dynamics system to ensure that emergency corridors do not trigger sudden downstream congestion waves. This experience demonstrated how core process engineering and transport phenomena principles can be leveraged to design cleaner, more efficient smart city ecosystems.
+**Student 4 — Harsha Patel T (Chemical):**
+As a Chemical Engineering student, my contributions focused on the environmental impact assessment, process optimization, and system dynamics of emergency clearance. I developed mathematical models to evaluate how the V2X preemption system reduces emergency vehicle fuel consumption and idle emissions (such as CO2, NOx, and volatile organic compounds) in transit corridors. Applying process control theory, I modeled urban traffic flow as a fluid dynamics system to ensure that emergency corridors do not trigger sudden downstream congestion waves. This experience demonstrated how core process engineering and transport phenomena principles can be used to design cleaner, more efficient smart city ecosystems.
 
-**Student 5 — [Name] ([USN]) (CSE):**
-My contribution to the Admin Control Center and Leaflet map integration of Syntrix V2X helped me build a strong understanding of geographic information systems (GIS) and administrative monitoring architectures. I worked on rendering dynamic SVG markers representing all active vehicles and traffic signals, enabling real-time global tracking. Building the dashboard interface to allow admins to adjust system parameters (like V2V/V2I ranges), log system events, and manage role-based user access taught me about security and configuration management. This experience highlighted the value of clear data visualization in providing administrators with immediate, actionable insights during emergencies.
+**Student 5 — Abhishek Banapur (CSE):**
+My contribution to the Admin Control Center and Leaflet map integration of V2X helped me build a strong understanding of geographic information systems (GIS) and administrative monitoring architectures. I worked on rendering dynamic SVG markers representing all active vehicles and traffic signals, enabling real-time global tracking. Building the dashboard interface to allow admins to adjust system parameters (like V2V/V2I ranges), log system events, and manage role-based user access taught me about security and configuration management. This experience highlighted the value of clear data visualization in providing administrators with immediate, actionable insights during emergencies.
 
 ---
 
@@ -328,25 +379,29 @@ My contribution to the Admin Control Center and Leaflet map integration of Syntr
 
 The following visuals document the system's interface and operation:
 
-> **[INSERT: Figure 1]** — System Architecture Diagram showing the five nodes (EV, Signal, V1, V2, Admin) communicating through Firebase Realtime Database.
+![System Architecture Diagram](C:\Users\AYUSH K BHAT\.gemini\antigravity\brain\e4aa7ccf-c54d-4a0f-99e5-6329912e2dc4\system_architecture_1780490494938.png)
+> **Figure 1** — System Architecture Diagram showing the five nodes (EV, Signal, V1, V2, Admin) communicating through Firebase Realtime Database.
 
-> **[INSERT: Figure 2]** — Methodology Flowchart showing the V2X communication flow from EV activation through signal preemption and V2V alerting.
+![Dual-Stage GPS Filter Pipeline](C:\Users\AYUSH K BHAT\.gemini\antigravity\brain\e4aa7ccf-c54d-4a0f-99e5-6329912e2dc4\gps_filter_pipeline_1780490507591.png)
+> **Figure 2** — GPS Filter Pipeline showing Raw coordinates passing through Outlier Detection, Kalman Filtering, Particle Filtering, and Dead Reckoning fallback for GPS dropouts.
 
-> **[INSERT: Figure 3]** — Admin Control Center Dashboard screenshot showing the interactive map with all unit markers, unit status cards, and event log.
+![Vehicle Dashboard Integration Strategies](C:\Users\AYUSH K BHAT\.gemini\antigravity\brain\e4aa7ccf-c54d-4a0f-99e5-6329912e2dc4\dashboard_integration_1780490519730.png)
+> **Figure 3** — Vehicle Dashboard Integration Strategies showing integration paths for vehicles with and without digital dashboards.
 
-> **[INSERT: Figure 4]** — Emergency Vehicle Dashboard screenshot showing GPS data, activation button, route planner map, and vehicle type selector.
 
-> **[INSERT: Figure 5]** — Traffic Signal Dashboard screenshot showing the signal state display, V2I preemption status, and EV distance indicator.
+> **[INSERT: Figure 4]** - Admin Control Center Dashboard screenshot showing the interactive map with all unit markers, unit status cards, and event log.
 
-> **[INSERT: Figure 6]** — Civic Vehicle Dashboard screenshot showing the V2V yield alert with directional arrow, proximity radar bar, and EV route mini-map.
+> **[INSERT: Figure 5]** - Emergency Vehicle Dashboard screenshot showing GPS data, activation button, route planner map, and vehicle type selector.
 
-> **[INSERT: Figure 7]** — Route Planning interface showing OSRM-generated route with animated polyline, corridor overlay, and turn-by-turn instructions.
+> **[INSERT: Figure 6]** - Traffic Signal Dashboard screenshot showing the signal state display, V2I preemption status, and EV distance indicator.
 
-> **[INSERT: Figure 8]** — GPS Accuracy Comparison chart showing raw GPS vs. Kalman-filtered vs. Kalman+Particle-filtered position traces.
+> **[INSERT: Figure 7]** - Civic Vehicle Dashboard screenshot showing the V2V yield alert with directional arrow, proximity radar bar, and EV route mini-map.
 
-> **[INSERT: Figure 9]** — Firebase Realtime Database structure showing the hierarchical data organization under the v4/ root path.
+> **[INSERT: Figure 8]** - Route Planning interface showing OSRM-generated route with animated polyline, corridor overlay, and turn-by-turn instructions.
 
-> **[INSERT: Figure 10]** — Login page and role-based authentication flow showing Google OAuth sign-in and admin approval workflow.
+> **[INSERT: Figure 9]** - Firebase Realtime Database structure showing the hierarchical data organization under the v4/ root path.
+
+> **[INSERT: Figure 10]** - Login page and role-based authentication flow showing Google OAuth sign-in and admin approval workflow.
 
 ---
 
@@ -354,7 +409,7 @@ The following visuals document the system's interface and operation:
 
 ### Product Development
 
-The Syntrix V2X system has been developed to a deployment-ready state and is live at **https://v2v-v2i-project.web.app**. The application demonstrates commercial viability as a low-cost, rapidly deployable emergency vehicle clearance system for Indian municipalities. Potential product development pathways include:
+The V2X system has been developed to a deployment-ready state and is live at **https://v2v-v2i-project.web.app**. The application shows it could actually work as a real product as a low-cost, rapidly deployable emergency vehicle clearance system for Indian municipalities. Potential product development pathways include:
 - Integration with existing traffic management systems (SCATS, SCOOT) through API adapters.
 - Mobile application packaging using Progressive Web App (PWA) manifest for native-like installation on smartphones.
 - Extension to support multiple simultaneous emergency vehicles with priority-based conflict resolution.
@@ -362,9 +417,9 @@ The Syntrix V2X system has been developed to a deployment-ready state and is liv
 
 ### Publication Potential
 
-The project's novel contribution — a zero-hardware-cost, cloud-based V2X emergency clearance system using browser GPS and Firebase — presents a viable candidate for publication in the following venues:
+The project's novel contribution - a zero-hardware-cost, cloud-based V2X emergency clearance system using browser GPS and Firebase - presents a viable candidate for publication in the following venues:
 - IEEE International Conference on Intelligent Transportation Systems (ITSC)
-- ACM Conference on Embedded Networked Sensor Systems (SenSys) — Demo Track
+- ACM Conference on Embedded Networked Sensor Systems (SenSys) - Demo Track
 - Indian Journal of Science and Technology (IJST)
 - International Journal of Advanced Computer Science and Applications (IJACSA)
 
@@ -376,17 +431,14 @@ The system's novel architecture combining dual-stage GPS filtering, cloud-based 
 
 ### References
 
-1. Qin, X., and Khan, A.M. (2012). "GPS-Based Emergency Vehicle Preemption System." *Transportation Research Record*, Vol. 2324, pp. 105–112.
-2. Noori, H., Olaverri-Monreal, C., and Selpi, S. (2016). "Connected Vehicle Approach for Emergency Vehicle Preemption." *IEEE International Conference on Vehicular Electronics and Safety*, pp. 1–6.
-3. Sharma, R., and Gupta, A. (2019). "Cloud-Based V2X Communication for Developing Countries." *International Journal of Advanced Research in Computer Science*, Vol. 10(3), pp. 45–52.
-4. Kálmán, R.E. (1960). "A New Approach to Linear Filtering and Prediction Problems." *Journal of Basic Engineering*, Vol. 82(1), pp. 35–45.
-5. Firebase Documentation. "Firebase Realtime Database." Google LLC. https://firebase.google.com/docs/database
-6. Leaflet Documentation. "Leaflet — An Open-Source JavaScript Library for Interactive Maps." https://leafletjs.com/
-7. OSRM Documentation. "Open Source Routing Machine." https://project-osrm.org/
-8. IEEE 802.11p. "IEEE Standard for Wireless Access in Vehicular Environments." IEEE Standards Association, 2010.
-9. 3GPP TS 36.300. "Evolved Universal Terrestrial Radio Access (E-UTRA) and Evolved Universal Terrestrial Radio Access Network (E-UTRAN)." 3GPP, Release 14.
-10. National Crime Records Bureau. "Accidental Deaths & Suicides in India — 2022." Ministry of Home Affairs, Government of India.
+1. Noori, H., Olaverri-Monreal, C., and Selpi, S. (2016). "Connected Vehicle Approach for Emergency Vehicle Preemption." *IEEE International Conference on Vehicular Electronics and Safety*, pp. 1-6.
+2. Firebase Documentation. "Firebase Realtime Database." Google LLC. https://firebase.google.com/docs/database
+3. Leaflet Documentation. "Leaflet - An Open-Source JavaScript Library for Interactive Maps." https://leafletjs.com/
+4. OSRM Documentation. "Open Source Routing Machine." https://project-osrm.org/
+5. IEEE 802.11p. "IEEE Standard for Wireless Access in Vehicular Environments." IEEE Standards Association, 2010.
+6. 3GPP TS 36.300. "Evolved Universal Terrestrial Radio Access (E-UTRA) and Evolved Universal Terrestrial Radio Access Network (E-UTRAN)." 3GPP, Release 14.
+7. National Crime Records Bureau. "Accidental Deaths & Suicides in India - 2022." Ministry of Home Affairs, Government of India.
 
 ---
 
-*Report prepared by Team Syntrix V2X, Department of Computer Science and Engineering, RV College of Engineering, Bengaluru.*
+*Report prepared by Team V2X, Department of Computer Science and Engineering, RV College of Engineering, Bengaluru.*
